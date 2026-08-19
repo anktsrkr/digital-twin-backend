@@ -419,34 +419,24 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
         </div>
       )}
 
-      {/* 4. Quick Screening Booking Mini-Widget */}
+      {/* 4. Footer & Copyright Notice */}
       <div style={{
         marginTop: 'auto',
-        background: 'var(--bg-surface-muted)',
-        border: '1px solid var(--border-hairline)',
-        borderRadius: 'var(--radius-md)',
-        padding: '0.85rem 1rem',
+        padding: '0.75rem 0.25rem 0.25rem',
+        borderTop: '1px solid var(--border-hairline)',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '0.5rem'
+        flexDirection: 'column',
+        gap: '0.2rem',
+        fontSize: '0.6875rem',
+        color: 'var(--text-muted)'
       }}>
-        <div>
-          <div style={{ fontSize: '0.78125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Schedule Technical Screen
-          </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
-            Direct sync with Cal.com (London / GMT)
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontWeight: 500 }}>© {new Date().getFullYear()} Ankit Sarkar</span>
+          <span style={{ color: 'var(--text-subtle)' }}>All rights reserved</span>
         </div>
-        <button
-          onClick={onScheduleClick}
-          className="btn-secondary"
-          style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem', whiteSpace: 'nowrap' }}
-        >
-          <Calendar size={12} />
-          <span>Book via Twin</span>
-        </button>
+        <div style={{ color: 'var(--text-subtle)', fontSize: '0.65rem' }}>
+          Verified Production Engineering & Architecture Portfolio
+        </div>
       </div>
     </aside>
   );
