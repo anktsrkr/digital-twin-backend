@@ -1,0 +1,510 @@
+@import "@copilotkit/react-core/v2/styles.css";
+
+:root {
+  /* =========================================================================
+     EXECUTIVE EDITORIAL DESIGN SYSTEM (Anti-AI-Slop Light Mode)
+     ========================================================================= */
+  --font-sans: 'Geist', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
+
+  /* CopilotKit Core Variable Mapping */
+  --primary: #0F172A;
+  --primary-foreground: #FFFFFF;
+  --background: #FFFFFF;
+  --foreground: #09090B;
+  --muted: #F8F9FA;
+  --muted-foreground: #6B7280;
+  --border: #E5E7EB;
+  --ring: #0F172A;
+  --radius: 12px;
+
+  /* Executive Architectural Color Tokens */
+  --bg-canvas: #F8F9FA;
+  --bg-surface: #FFFFFF;
+  --bg-surface-subtle: #F3F4F6;
+  --bg-surface-muted: #F9FAFB;
+  --bg-surface-hover: #F4F4F5;
+  
+  /* Ink Typography Tokens */
+  --text-primary: #09090B;
+  --text-secondary: #374151;
+  --text-muted: #6B7280;
+  --text-subtle: #9CA3AF;
+  --text-inverse: #FFFFFF;
+
+  /* Precision Borders */
+  --border-hairline: #E5E7EB;
+  --border-subtle: #D1D5DB;
+  --border-medium: #9CA3AF;
+  --border-focus: #0F172A;
+
+  /* User Message Obsidian Capsule */
+  --user-bubble-bg: #18181B;
+  --user-bubble-border: #27272A;
+  --user-bubble-text: #F8FAFC;
+
+  /* Executive Accents */
+  --accent-slate: #0F172A;
+  --accent-slate-hover: #1E293B;
+  --accent-cobalt: #1D4ED8;
+  --accent-cobalt-subtle: #EFF6FF;
+  --accent-cobalt-border: #BFDBFE;
+  --accent-emerald: #059669;
+  --accent-emerald-subtle: #ECFDF5;
+  --accent-emerald-border: #A7F3D0;
+  --accent-amber: #D97706;
+  --accent-amber-subtle: #FFFBEB;
+
+  /* Elevation Shadows (Crisp & Physical, not hazy purple glow) */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+  /* Radius Tokens */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-sans);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.015em;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  /* Subtle, ultra-clean micro-dot pattern (subtle 24px grid) */
+  background-image: radial-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+/* =========================================================================
+   EXECUTIVE BUTTONS & ACTIONS
+   ========================================================================= */
+
+/* Primary Obsidian Button */
+.btn-primary {
+  background: var(--accent-slate);
+  color: var(--text-inverse);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.84rem;
+  padding: 0.55rem 1.05rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  user-select: none;
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background: var(--accent-slate-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Secondary Editorial Button */
+.btn-secondary {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hairline);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+  user-select: none;
+  box-shadow: var(--shadow-xs);
+  text-decoration: none;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
+/* Icon Button */
+.btn-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  border: 1px solid var(--border-hairline);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-xs);
+  text-decoration: none;
+}
+
+.btn-icon:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+/* =========================================================================
+   STATUS BADGES & MICRO-PILLS
+   ========================================================================= */
+
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid var(--border-hairline);
+  letter-spacing: -0.01em;
+}
+
+.badge-available {
+  background: var(--accent-emerald-subtle);
+  color: var(--accent-emerald);
+  border-color: var(--accent-emerald-border);
+}
+
+.badge-mono {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  letter-spacing: 0;
+}
+
+/* Pulsing Status Dot */
+@keyframes pulse-emerald {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-emerald);
+  animation: pulse-emerald 2s infinite ease-in-out;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* =========================================================================
+   EDITORIAL MARKDOWN PROSE STYLING (Stripe / Linear Quality)
+   ========================================================================= */
+
+.markdown-content {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.68;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.markdown-content p {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+  line-height: 1.68;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+  margin: 0.5rem 0 0.85rem 1.25rem;
+  padding-left: 0;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+  margin: 0.5rem 0 0.85rem 1.25rem;
+  padding-left: 0;
+}
+
+.markdown-content li {
+  margin-bottom: 0.4rem;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.markdown-content li:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+}
+
+.markdown-content h1 {
+  font-size: 1.3rem;
+  margin: 1.25rem 0 0.6rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.15rem;
+  margin: 1.1rem 0 0.5rem;
+}
+
+.markdown-content h3 {
+  font-size: 1.02rem;
+  margin: 0.95rem 0 0.4rem;
+}
+
+.markdown-content h4 {
+  font-size: 0.92rem;
+  margin: 0.85rem 0 0.35rem;
+}
+
+/* Monospace Inline Code */
+.markdown-content code {
+  font-family: var(--font-mono) !important;
+  font-size: 0.84em !important;
+  padding: 0.15em 0.4em !important;
+  background: var(--bg-surface-subtle) !important;
+  border: 1px solid var(--border-hairline) !important;
+  border-radius: 5px !important;
+  color: #1E293B !important;
+  font-weight: 500 !important;
+}
+
+/* Monospace Code Blocks */
+.markdown-content pre {
+  background: #09090B !important;
+  color: #F8FAFC !important;
+  padding: 0.9rem 1.1rem !important;
+  border-radius: var(--radius-md) !important;
+  overflow-x: auto !important;
+  margin: 0.9rem 0 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.82rem !important;
+  line-height: 1.55 !important;
+  border: 1px solid #27272A !important;
+}
+
+.markdown-content pre code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: inherit !important;
+  font-size: inherit !important;
+}
+
+/* Blockquotes */
+.markdown-content blockquote {
+  border-left: 3px solid var(--accent-slate);
+  padding: 0.45rem 0.9rem;
+  margin: 0.8rem 0;
+  color: var(--text-secondary);
+  font-style: italic;
+  background: var(--bg-surface-subtle);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* Tables */
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.9rem 0;
+  font-size: 0.85rem;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--border-hairline);
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+}
+
+.markdown-content th {
+  background: var(--bg-surface-subtle);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.markdown-content tr:nth-child(even) {
+  background: #FAFAFA;
+}
+
+/* =========================================================================
+   TELEMETRY PROCESSING & SYNTHESIS BAR (Editorial Non-AI-Slop)
+   ========================================================================= */
+
+@keyframes telemetryPulse {
+  0% { transform: scale(0.95); opacity: 0.6; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.6; }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.telemetry-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.85rem;
+  background: #FFFFFF;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  animation: slideUpFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin: 0.4rem 0;
+}
+
+.telemetry-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--accent-slate);
+  border-radius: 50%;
+  animation: spinSlow 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+.telemetry-text {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: -0.01em;
+}
+
+.telemetry-badge {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  background: var(--bg-surface-subtle);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-hairline);
+}
+
+/* Entry Animation */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-enter {
+  animation: slideUpFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Shimmer Skeleton */
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s infinite;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
+  .btn-secondary span {
+    display: none;
+  }
+  .btn-secondary {
+    padding: 0.45rem;
+  }
+}

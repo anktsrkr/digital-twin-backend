@@ -1,0 +1,302 @@
+{
+  "candidate": {
+    "name": "Ankit Sarkar",
+    "title": "Principal Engineer | Platform Engineering | Cloud, DevEx & AI-Assisted Software Delivery",
+    "location": "Leeds, United Kingdom",
+    "phone": "07425 949507",
+    "email": "ankitsarkar.uk@gmail.com",
+    "linkedin": "https://linkedin.com/in/sarkaran",
+    "github": "https://github.com/anktsrkr",
+    "blog": "https://anktsrkr.github.io",
+    "summary": "Principal Engineer and Microsoft Certified Azure Solutions Architect Expert with 13+ years of experience designing and delivering enterprise platforms, distributed systems, cloud modernisation programmes, and integration solutions across retail, logistics, and transportation environments in the UK, Belgium, and India. Specialises in platform engineering, distributed event-driven architecture, and Agentic AI solutions."
+  },
+  "chunks": [
+    {
+      "title": "Executive Summary & Professional Profile",
+      "category": "About",
+      "company": "Tata Consultancy Services",
+      "role": "Principal Engineer | Azure Solutions Architect Expert",
+      "startDate": "2013-09",
+      "endDate": "Present",
+      "sourceName": "Resume: Professional Summary",
+      "sourceLink": "#overview",
+      "technologies": [
+        "Microsoft Azure",
+        "Agentic AI",
+        "Platform Engineering",
+        "DevEx",
+        "Distributed Systems",
+        "Event-Driven Architecture",
+        "Infrastructure as Code",
+        "Terraform",
+        "C#",
+        ".NET 10 / ASP.NET Core"
+      ],
+      "content": "Principal Engineer and Microsoft Certified Azure Solutions Architect Expert with 13+ years of experience designing and delivering enterprise platforms, distributed systems, cloud modernisation programmes, and integration solutions across retail, logistics, and transportation environments in the UK, Belgium, and India.\n\nPreviously owned the technical direction of a mission-critical Azure-based retail eCommerce picking platform, driving platform architecture, engineering standards, DevSecOps practices, and platform evolution for high-volume customer fulfilment capabilities supporting more than 700,000 customer orders per week across 600+ stores.\n\nExperienced in platform engineering, developer experience (DevEx), distributed systems, event-driven architecture, Infrastructure as Code, and enterprise cloud modernisation. Recently focused on applying Agentic AI to software engineering by building GitHub Copilot Agents, reusable Agent Skills, AI-powered developer tooling, and open-source SDKs that accelerate engineering workflows while maintaining production-grade security, reliability, and operational excellence."
+    },
+    {
+      "title": "Career Preferences, Target Roles & Work Authorisation",
+      "category": "About",
+      "company": null,
+      "role": "AI Solutions Architect | Technical Architect | Principal Engineer",
+      "startDate": null,
+      "endDate": null,
+      "sourceName": "Career Preferences & Work Authorisation",
+      "sourceLink": "#career-preferences",
+      "technologies": [
+        "AI Solutions Architect",
+        "Technical Architect",
+        "Principal Engineer",
+        "Platform Architect",
+        "UK Visa Sponsorship",
+        "Remote Work",
+        "Hybrid Work",
+        "Leeds, UK",
+        "United Kingdom"
+      ],
+      "content": "Current Career Objectives, Target Roles & Working Preferences:\n\n• Target Roles: AI Solutions Architect, Technical Architect, Principal Engineer, Enterprise Cloud Architect, and Platform Engineering Lead.\n• Work Authorisation & Visa Status: Requires UK Skilled Worker Visa Sponsorship for permanent employment in the United Kingdom.\n• Working Arrangements: Open to both Fully Remote and Hybrid working models (based in Leeds, United Kingdom, with flexibility for travel and hybrid hubs across the UK).\n• Core Focus Areas: Designing enterprise Agentic AI systems, production RAG platforms, high-scale distributed event-driven systems on Microsoft Azure, developer platforms (DevEx), and platform engineering enablement."
+    },
+    {
+      "title": "Key Career Achievements & High-Scale Milestones",
+      "category": "Experience",
+      "company": "Enterprise Engineering",
+      "role": "Principal Engineer & Solutions Architect",
+      "startDate": "2019-03",
+      "endDate": "Present",
+      "sourceName": "Resume: Key Achievements",
+      "sourceLink": "#achievements",
+      "technologies": [
+        "Microsoft Azure",
+        "Terraform",
+        "GitHub Actions",
+        "Azure DevOps",
+        "Agentic AI",
+        "GitHub Copilot",
+        "DevSecOps",
+        "Observability",
+        "Distributed Systems"
+      ],
+      "content": "Major Career Achievements:\n• Architected and built an Azure-based eCommerce picking platform from the ground up, establishing a resilient and scalable foundation capable of supporting peak trading demand - including 90,000+ customer orders within 30 minutes and 150,000+ Christmas orders, while maintaining zero critical production incidents through engineering excellence, observability, and operational best practices for a major UK grocery retailer.\n• Led Azure modernisation initiatives across enterprise applications supporting 25,000+ users, helping transition legacy workloads towards scalable cloud-native architectures.\n• Established platform engineering practices by creating reusable engineering solutions, including identity testing capabilities, Terraform modules, DevSecOps automation, CI/CD improvements, and developer tooling that improved engineering productivity, delivery consistency, and operational reliability across teams.\n• Developed Agentic AI solutions including GitHub Copilot Agents, reusable Agent Skills, and open-source AI tooling to improve developer workflows, supporting software modernisation initiatives across 200+ repositories."
+    },
+    {
+      "title": "Major UK Grocery Retailer: Azure eCommerce Picking Platform",
+      "category": "Experience",
+      "company": "Tata Consultancy Services (Major UK Grocery Retailer)",
+      "role": "Principal Engineer | Technical Owner & SME",
+      "startDate": "2023-01",
+      "endDate": "Present",
+      "sourceName": "Experience: Major UK Grocery Retailer",
+      "sourceLink": "#experience-grocery",
+      "technologies": [
+        "Microsoft Azure",
+        "C#",
+        ".NET",
+        "Event-Driven Architecture",
+        "Azure Well-Architected Framework",
+        "Azure Integration Services",
+        "Service Bus",
+        "Event Grid",
+        "Event Hubs",
+        "Azure Functions",
+        "Durable Task",
+        "Terraform",
+        "DevSecOps",
+        "InnerSource"
+      ],
+      "content": "Served as Technical Owner for a major UK retailer's Azure-based eCommerce picking platform supporting 700,000+ weekly orders across 600+ stores, accountable for platform strategy, architecture, delivery, and cross-functional collaboration with architects, product managers, and engineering leaders.\n\nKey Responsibilities & Highlights:\n• Designed and evolved a scalable, event-driven Azure architecture aligned with the Azure Well-Architected Framework, enabling resilient nationwide grocery fulfilment.\n• Led end-to-end engineering delivery across solution architecture, software development, Terraform-based IaC, DevSecOps, and production operations.\n• Improved developer experience by introducing shared Terraform modules, Azure DevOps templates, and GitHub Actions workflows, promoting InnerSource engineering practices across teams.\n• Established engineering standards for observability, deployment pipelines, and platform architecture, improving consistency and operational resilience.\n• Ensured reliable, high-performance platform operations during major peak events including 90,000+ orders in 30 minutes and 150,000+ Christmas orders while guiding ongoing platform evolution and strategic roadmap direction."
+    },
+    {
+      "title": "Agentic AI, Azure AI Foundry & Model Context Protocol (MCP)",
+      "category": "Experience",
+      "company": "Enterprise AI Engineering & Open Source",
+      "role": "AI Solutions Architect & Principal Engineer",
+      "startDate": "2023-01",
+      "endDate": "Present",
+      "sourceName": "Experience: Agentic AI & AI Foundry",
+      "sourceLink": "#experience-agentic-ai",
+      "technologies": [
+        "Microsoft Agent Framework",
+        "Azure AI Foundry",
+        "Model Context Protocol (MCP)",
+        "Agent2Agent (A2A)",
+        "Claude Agent SDK",
+        "Azure OpenAI",
+        "Anthropic Claude",
+        "Multi-Agent Systems",
+        "GitHub Copilot Agents"
+      ],
+      "content": "Architected secure Agentic AI solutions and multi-agent systems using Microsoft Agent Framework, Azure AI Foundry, Model Context Protocol (MCP), and Agent2Agent (A2A) patterns.\n\nKey Highlights:\n• Designed production-ready patterns for enterprise AI adoption, multi-agent interoperability, and AI-assisted software delivery.\n• Developed custom GitHub Copilot Agents and reusable Agent Skills to improve developer workflows across 200+ repositories.\n• Evaluated and prototyped foundation models via Azure AI Foundry (Azure OpenAI, Anthropic Claude 3.5 Sonnet / Opus), defining multi-model AI architectures, model selection strategies, and latency/cost optimization patterns."
+    },
+    {
+      "title": "Enterprise RAG, Vector Search & Fine-Grained Authorization with SpiceDB",
+      "category": "Experience",
+      "company": "Enterprise AI Architecture",
+      "role": "AI Solutions Architect",
+      "startDate": "2023-01",
+      "endDate": "Present",
+      "sourceName": "Architecture: Enterprise RAG & SpiceDB",
+      "sourceLink": "#architecture-rag-spicedb",
+      "technologies": [
+        "Enterprise RAG",
+        "Vector Databases",
+        "Supabase pgvector",
+        "Voyage AI",
+        "Semantic Search",
+        "Fine-Grained Authorization",
+        "ReBAC",
+        "SpiceDB",
+        "Zero Trust AI"
+      ],
+      "content": "Designed and implemented enterprise-grade Retrieval-Augmented Generation (RAG) platforms combining event-driven knowledge ingestion, dense vector embeddings, reranking, and fine-grained relationship-based access control (ReBAC) using SpiceDB.\n\nKey Highlights:\n• Integrated fine-grained authorization with SpiceDB so that RAG queries strictly enforce organizational permissions before context injection, preventing data leakage across multi-tenant enterprise boundaries.\n• Built end-to-end event-driven ingestion pipelines utilizing embedding models, vector similarity search, and reranking for high-precision semantic retrieval."
+    },
+    {
+      "title": "AI Governance, Guardrails & Responsible AI",
+      "category": "Experience",
+      "company": "Enterprise AI Governance",
+      "role": "AI Solutions Architect",
+      "startDate": "2023-01",
+      "endDate": "Present",
+      "sourceName": "Governance: Microsoft Agent Governance Toolkit",
+      "sourceLink": "#governance-ai",
+      "technologies": [
+        "Microsoft Agent Governance Toolkit",
+        "Responsible AI",
+        "AI Guardrails",
+        "AI Security",
+        "AI Observability",
+        "Zero Trust Agent Identity"
+      ],
+      "content": "Established enterprise AI governance and platform standards using the Microsoft Agent Governance Toolkit.\n\nKey Implementation Areas:\n• Zero-Trust Agent Identity: Enforced verifiable identities and permissions for autonomous agents.\n• Policy Enforcement & Guardrails: Implemented content filtering, prompt injection defense, and output moderation controls.\n• Auditable Agent Actions: Established end-to-end observability, telemetry, and auditable action logs for autonomous agent decisions in enterprise workflows."
+    },
+    {
+      "title": "Major UK Health & Beauty Retailer: Cloud Modernisation Programme",
+      "category": "Experience",
+      "company": "Tata Consultancy Services (Major UK Health & Beauty Retailer)",
+      "role": "Azure Solution Architect",
+      "startDate": "2021-01",
+      "endDate": "2022-12",
+      "sourceName": "Experience: Major UK Health & Beauty Retailer",
+      "sourceLink": "#experience-health-beauty",
+      "technologies": [
+        "Microsoft Azure",
+        "Azure App Services",
+        "API Management (APIM)",
+        "Azure Key Vault",
+        "Azure Storage",
+        "Azure DevOps",
+        "Stub Identity Platform"
+      ],
+      "content": "Led Azure architecture and cloud modernisation for 7 business-critical applications supporting over 25,000 internal users.\n\nKey Responsibilities & Highlights:\n• Designed Azure-native solutions using Azure App Services, API Management, Key Vault, Azure Storage, and Azure DevOps, with a strong focus on resilience, security, and cost-aware architecture.\n• Designed and delivered a reusable Stub Identity Platform that removed a critical programme dependency and enabled enterprise-scale performance testing without impacting production identity services.\n• Developed reusable frameworks, shared platform services, and engineering accelerators adopted across multiple delivery teams.\n• Partnered with Microsoft architects and client engineering leadership to establish cloud governance and migration strategy across a programme modernising approximately 90 enterprise applications."
+    },
+    {
+      "title": "Belgian National Railways: Large-Scale Cloud Migration",
+      "category": "Experience",
+      "company": "Tata Consultancy Services (Belgian National Railways)",
+      "role": "Azure Migration Architect",
+      "startDate": "2019-03",
+      "endDate": "2020-12",
+      "sourceName": "Experience: Belgian National Railways",
+      "sourceLink": "#experience-belgian-railways",
+      "technologies": [
+        "Microsoft Azure",
+        "Azure Landing Zones",
+        "Cloud Adoption Framework",
+        "Workload Discovery",
+        "Dependency Analysis",
+        "Migration Strategy"
+      ],
+      "content": "Supported a large-scale Azure migration programme for Belgium's national railway operator, covering complex enterprise applications and infrastructure.\n\nKey Responsibilities & Highlights:\n• Defined migration strategies, Azure Landing Zone architecture, and cloud adoption roadmaps aligned with business objectives.\n• Contributed to governance, workload discovery, dependency analysis, and migration planning across multiple delivery teams."
+    },
+    {
+      "title": "MOL Information Technology: Global Shipping Logistics Platform",
+      "category": "Experience",
+      "company": "MOL Information Technology",
+      "role": "Software Engineer",
+      "startDate": "2016-01",
+      "endDate": "2019-02",
+      "sourceName": "Experience: MOL Information Technology",
+      "sourceLink": "#experience-mol-it",
+      "technologies": [
+        "C#",
+        ".NET",
+        "ASP.NET Core",
+        "NuGet",
+        "CI/CD Pipelines",
+        "SQL Server",
+        "Application Frameworks"
+      ],
+      "content": "Contributed to the development of the MOL Consolidation System (MCS), a business-critical logistics and freight management platform supporting global shipping operations.\n\nKey Responsibilities & Highlights:\n• Designed reusable frameworks, NuGet packages, and shared libraries adopted across multiple engineering teams.\n• Established engineering standards, coding practices, and application templates to improve consistency and maintainability.\n• Introduced CI/CD pipelines and automated build processes, improving release reliability and reducing manual deployment effort.\n• Conducted code reviews, mentored junior developers, and contributed to performance optimisation and modernisation initiatives across legacy .NET applications."
+    },
+    {
+      "title": "Early Career Software Engineering: Web Applications Development",
+      "category": "Experience",
+      "company": "Customer First Infonet Pvt Ltd / Max Mobility Pvt Ltd",
+      "role": "Software Developer",
+      "startDate": "2013-09",
+      "endDate": "2015-12",
+      "sourceName": "Experience: Early Career Development",
+      "sourceLink": "#experience-early-career",
+      "technologies": [
+        "C#",
+        "ASP.NET MVC",
+        "SQL Server",
+        "Agile / Scrum",
+        "SDLC",
+        "Web Applications"
+      ],
+      "content": "Early career developer roles focused on engineering, supporting, and delivering web applications built on the Microsoft stack within collaborative Agile teams.\n• Software Developer at Customer First Infonet Pvt Ltd (2014 – 2015)\n• Software Developer at Max Mobility Pvt Ltd (2013 – 2014)\n\nKey Responsibilities:\n• Developed enterprise web applications using ASP.NET MVC, C#, SQL Server, and Microsoft technology stack.\n• Delivered new features, production support, and defect fixes across customer-facing applications in Agile teams.\n• Collaborated with business stakeholders to implement enhancements and ensure application stability.\n• Gained foundational experience in enterprise software engineering, SDLC processes, and Agile delivery practices."
+    },
+    {
+      "title": "Core Technical Skills & Architecture Competency Matrix",
+      "category": "Skills",
+      "company": null,
+      "role": null,
+      "startDate": null,
+      "endDate": null,
+      "sourceName": "Skills: Core Competencies Matrix",
+      "sourceLink": "#skills-matrix",
+      "technologies": [
+        "Engineering Leadership: Technical Ownership, Architecture Governance, Stakeholder Management, Cross-Functional Leadership, Engineering Standards, Mentoring & Technical Enablement, Agentic AI, AI-Assisted Software Delivery",
+        "Enterprise & Platform Architecture: Platform Strategy, Solution & System Design, Distributed Systems, Event-Driven Architecture (EDA), Microservices, Domain-Driven Design (DDD), API Management & Design, Azure Landing Zones & Governance",
+        "Platform Engineering & DevSecOps: Infrastructure as Code (IaC / Terraform), CI/CD Pipelines (GitHub Actions, Azure DevOps), Internal Developer Platforms (IDP), Developer Experience (DevEx), Containerization (Docker), InnerSource Practices",
+        "SRE, Observability & FinOps: Site Reliability Engineering (SRE), Enterprise Observability (Azure Monitor, App Insights, Log Analytics), Cloud FinOps & Cost Optimization, High-Availability & Resilience Engineering",
+        "Technology Stack & Frameworks: Microsoft Azure, C#, .NET / ASP.NET Core, RESTful APIs, Azure Integration Services (APIM, Service Bus, Event Grid, Event Hubs, Azure Functions, Durable Task), Entity Framework"
+      ],
+      "content": "Deep technical competencies across 5 core engineering pillars:\n1. Engineering Leadership: Technical ownership, architecture governance, cross-functional leadership, standards enforcement, technical enablement, and Agentic AI-assisted software delivery.\n2. Enterprise & Platform Architecture: Platform strategy, distributed systems, event-driven architecture (EDA), microservices, Domain-Driven Design (DDD), API management, and Azure Landing Zones.\n3. Platform Engineering & DevSecOps: Terraform IaC, GitHub Actions, Azure DevOps, Internal Developer Platforms (IDP), DevEx, Docker, and InnerSource.\n4. SRE, Observability & FinOps: Enterprise observability (Azure Monitor, App Insights, Log Analytics), SRE resilience engineering, and Cloud FinOps.\n5. Tech Stack & Integration: Microsoft Azure, C#, .NET / ASP.NET Core, REST APIs, Azure Integration Services (APIM, Service Bus, Event Grid, Event Hubs, Azure Functions, Durable Task), Entity Framework."
+    },
+    {
+      "title": "Professional Certifications & Credentials",
+      "category": "Certifications",
+      "company": "Microsoft, Anthropic, GitHub & Amazon",
+      "role": "Certified Solutions Architect & AI Practitioner",
+      "startDate": null,
+      "endDate": null,
+      "sourceName": "Certifications & Credentials",
+      "sourceLink": "https://learn.microsoft.com/en-us/users/ankitsarkar/transcript/vn0qmu4wl2xgwye",
+      "technologies": [
+        "Microsoft Certified",
+        "Anthropic Certified",
+        "GitHub Certified",
+        "AWS Certified"
+      ],
+      "content": "Official Professional Certifications & Accreditations:\n\n• Microsoft (Transcript: https://learn.microsoft.com/en-us/users/ankitsarkar/transcript/vn0qmu4wl2xgwye):\n  - Azure Solutions Architect Expert (AZ-303 + AZ-304)\n  - Agentic AI Business Solutions Architect (AI-102 + AB-100)\n  - Azure DevOps Engineer Expert (AZ-400)\n  - Azure Developer Associate (AZ-204)\n  - Azure Administrator Associate (AZ-104)\n  - Azure AI Fundamentals (AI-900)\n  - Azure Fundamentals (AZ-900)\n\n• Anthropic (Credly: https://www.credly.com/users/sarkaran/badges/credly):\n  - Claude Certified Architect - Professional\n  - Claude Certified Architect - Foundations\n  - Claude Certified Associate – Foundations\n\n• GitHub (Credly: https://www.credly.com/users/sarkaran/badges/credly):\n  - GitHub Advanced Security\n  - GitHub Actions\n  - GitHub Copilot\n  - GitHub Administration\n  - GitHub Foundations\n\n• Amazon AWS (Credly: https://www.credly.com/users/sarkaran/badges/credly):\n  - AWS Certified Cloud Practitioner"
+    },
+    {
+      "title": "Education & Academic Background",
+      "category": "Education",
+      "company": "Camellia Institute of Technology, India",
+      "role": "B.Tech in Electronics & Communication Engineering",
+      "startDate": "2009",
+      "endDate": "2013",
+      "sourceName": "Education: Camellia Institute of Technology",
+      "sourceLink": "#education",
+      "technologies": [
+        "Electronics & Communication Engineering",
+        "Computer Architecture",
+        "Digital Signal Processing",
+        "Software Engineering"
+      ],
+      "content": "Bachelor of Technology (B.Tech) in Electronics & Communication Engineering (2009 – 2013) from Camellia Institute of Technology, India. Focused on computer systems, digital communications, signal processing, and foundational software engineering principles."
+    }
+  ]
+}

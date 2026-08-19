@@ -1,0 +1,6 @@
+@ResumeAssistant.Api_HostAddress = http://localhost:5189
+
+GET {{ResumeAssistant.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

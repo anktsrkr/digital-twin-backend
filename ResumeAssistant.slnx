@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ResumeAssistant.Api/ResumeAssistant.Api.csproj" />
+    <Project Path="src/ResumeAssistant.Core/ResumeAssistant.Core.csproj" />
+    <Project Path="src/ResumeAssistant.Ingestion/ResumeAssistant.Ingestion.csproj" />
+  </Folder>
+</Solution>

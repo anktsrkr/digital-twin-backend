@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ResumeAssistant.Core\ResumeAssistant.Core.csproj" />
+    <ProjectReference Include="..\..\..\voyage-ai-sdk\src\VoyageAI.Sdk\VoyageAI.Sdk.csproj" />
+    <ProjectReference Include="..\..\..\voyage-ai-sdk\src\VoyageAI.Microsoft.Extensions.AI\VoyageAI.Microsoft.Extensions.AI.csproj" />
+    <ProjectReference Include="..\..\..\voyage-ai-sdk\src\VoyageAI.AgentFramework\VoyageAI.AgentFramework.csproj" />
+    <ProjectReference Include="..\..\..\..\ScratchPad\ag-ui\sdks\dotnet\src\AGUI.Abstractions\AGUI.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\ScratchPad\ag-ui\sdks\dotnet\src\AGUI.Server\AGUI.Server.csproj" />
+    <ProjectReference Include="..\..\..\..\ScratchPad\ag-ui\sdks\dotnet\samples\AGUI.Samples.Shared\AGUI.Samples.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.9.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.9.0" />
+    <PackageReference Include="OpenAI" Version="2.13.0" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
+    <PackageReference Include="Pgvector" Version="0.3.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    
+    <!-- OpenTelemetry & Grafana Cloud OTLP Ingestion -->
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.17.0" />
+  </ItemGroup>
+
+</Project>

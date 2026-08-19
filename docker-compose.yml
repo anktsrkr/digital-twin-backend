@@ -1,0 +1,82 @@
+services:
+  # 1. PostgreSQL 17 with pgvector (Vector DB & Recruiter Telemetry)
+  postgres-vector:
+    image: pgvector/pgvector:pg17
+    container_name: resume-postgres-vector
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: resume_assistant
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d resume_assistant"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Supabase Auth Service (GoTrue) - Handles Magic Links, OTPs & JWTs locally
+  supabase-auth:
+    image: supabase/gotrue:v2.158.1
+    container_name: resume-supabase-auth
+    restart: unless-stopped
+    depends_on:
+      postgres-vector:
+        condition: service_healthy
+      inbucket:
+        condition: service_started
+    ports:
+      - "9999:9999" # GoTrue Auth API (http://localhost:9999)
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://localhost:9999
+      GOTRUE_API_EXTERNAL_URL: http://localhost:9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:postgres@postgres-vector:5432/resume_assistant?sslmode=disable&search_path=auth
+      GOTRUE_SITE_URL: http://localhost:5173
+      GOTRUE_URI_ALLOW_LIST: http://localhost:5173,http://localhost:5174
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_SMTP_HOST: inbucket
+      GOTRUE_SMTP_PORT: 2500
+      GOTRUE_SMTP_USER: ""
+      GOTRUE_SMTP_PASS: ""
+      GOTRUE_SMTP_ADMIN_EMAIL: admin@resumetwin.local
+      GOTRUE_SMTP_MAX_FREQUENCY: 1s
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /verify
+      GOTRUE_MAILER_URLPATHS_INVITE: /verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /verify
+
+  # 3. Local Email Inbox (Inbucket) - Catch and view all Magic Link OTP emails
+  inbucket:
+    image: inbucket/inbucket:3.1.0
+    container_name: resume-inbucket
+    restart: unless-stopped
+    ports:
+      - "9000:9000" # Inbucket Web UI (http://localhost:9000)
+      - "2500:2500" # Inbound SMTP port
+
+  # 4. Local Grafana LGTM OpenTelemetry Stack (Grafana + Tempo + Loki + Prometheus)
+  grafana-lgtm:
+    image: grafana/otel-lgtm:latest
+    container_name: resume-grafana-lgtm
+    restart: unless-stopped
+    ports:
+      - "3000:3000" # Grafana Dashboard (http://localhost:3000 - user: admin / pass: admin)
+      - "4317:4317" # OTLP gRPC Ingestion
+      - "4318:4318" # OTLP HTTP Ingestion
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+
+volumes:
+  pgdata:
