@@ -5,8 +5,7 @@ import {
   Building2, 
   Calendar, 
   Download, 
-  ChevronRight,
-  ArrowUpRight
+  ChevronRight
 } from 'lucide-react';
 
 export interface ArchitectureDossierProps {
@@ -360,8 +359,8 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
           className="btn-secondary"
           style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem', whiteSpace: 'nowrap' }}
         >
-          <span>Open Calendar</span>
-          <ArrowUpRight size={12} />
+          <Calendar size={12} />
+          <span>Book via Twin</span>
         </button>
       </div>
     </aside>

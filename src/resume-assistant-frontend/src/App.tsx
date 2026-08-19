@@ -73,11 +73,15 @@ export function App() {
     link.click();
   }, []);
 
-  const handleSelectPrompt = (prompt: string) => {
+  const handleSelectPrompt = useCallback((prompt: string) => {
     setSelectedPrompt(prompt);
     // On mobile, auto-switch to terminal tab to see the live response
     setMobileTab('terminal');
-  };
+  }, []);
+
+  const handleScheduleClick = useCallback(() => {
+    handleSelectPrompt("When is Ankit available for an interview or screening call?");
+  }, [handleSelectPrompt]);
 
   const copilotHeaders = useMemo(() => ({
     ...(recruiterEmail ? { 'X-Recruiter-Email': recruiterEmail } : {}),
@@ -98,7 +102,7 @@ export function App() {
           recruiterCompany={recruiterCompany}
           onOpenAuth={() => setIsAuthOpen(true)}
           onSignOut={handleSignOut}
-          onScheduleClick={() => window.open('https://cal.com/anktsrkr', '_blank')}
+          onScheduleClick={handleScheduleClick}
           onDownloadPdf={handleDownloadPdf}
         />
 
@@ -127,7 +131,7 @@ export function App() {
             <section className={`dossier-pane ${mobileTab !== 'dossier' ? 'hide-mobile' : ''}`}>
               <ArchitectureDossier
                 onSelectPrompt={handleSelectPrompt}
-                onScheduleClick={() => window.open('https://cal.com/anktsrkr', '_blank')}
+                onScheduleClick={handleScheduleClick}
                 onDownloadPdf={handleDownloadPdf}
                 isAgentRunning={isAgentRunning}
               />
