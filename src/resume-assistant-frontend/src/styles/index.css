@@ -567,6 +567,72 @@ button[aria-label="Open CopilotKit Dev Console"],
   flex-direction: column;
 }
 
+/* =========================================================================
+   AUTOHIDE SLIM SCROLLBARS (macOS / Linear / VS Code Style)
+   ========================================================================= */
+
+.autohide-scrollbar,
+.dossier-pane,
+.terminal-pane,
+aside,
+[style*="overflow-y: auto"] {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s ease;
+}
+
+.autohide-scrollbar:hover,
+.dossier-pane:hover,
+.terminal-pane:hover,
+aside:hover,
+[style*="overflow-y: auto"]:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.16) transparent;
+}
+
+/* WebKit (Chrome, Safari, Edge) */
+.autohide-scrollbar::-webkit-scrollbar,
+.dossier-pane::-webkit-scrollbar,
+.terminal-pane::-webkit-scrollbar,
+aside::-webkit-scrollbar,
+[style*="overflow-y: auto"]::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.autohide-scrollbar::-webkit-scrollbar-track,
+.dossier-pane::-webkit-scrollbar-track,
+.terminal-pane::-webkit-scrollbar-track,
+aside::-webkit-scrollbar-track,
+[style*="overflow-y: auto"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.autohide-scrollbar::-webkit-scrollbar-thumb,
+.dossier-pane::-webkit-scrollbar-thumb,
+.terminal-pane::-webkit-scrollbar-thumb,
+aside::-webkit-scrollbar-thumb,
+[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.autohide-scrollbar:hover::-webkit-scrollbar-thumb,
+.dossier-pane:hover::-webkit-scrollbar-thumb,
+.terminal-pane:hover::-webkit-scrollbar-thumb,
+aside:hover::-webkit-scrollbar-thumb,
+[style*="overflow-y: auto"]:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.autohide-scrollbar::-webkit-scrollbar-thumb:hover,
+.dossier-pane::-webkit-scrollbar-thumb:hover,
+.terminal-pane::-webkit-scrollbar-thumb:hover,
+aside::-webkit-scrollbar-thumb:hover,
+[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
 /* Mobile Segmented Switcher */
 .mobile-pane-switcher {
   display: none;

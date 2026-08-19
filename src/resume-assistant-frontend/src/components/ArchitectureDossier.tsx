@@ -87,15 +87,18 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
   const [activeTab, setActiveTab] = useState<'case-studies' | 'tech-matrix'>('case-studies');
 
   return (
-    <aside style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.85rem',
-      width: '100%',
-      height: '100%',
-      overflowY: 'auto',
-      paddingRight: '0.25rem'
-    }}>
+    <aside 
+      className="autohide-scrollbar"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.85rem',
+        width: '100%',
+        height: '100%',
+        overflowY: 'auto',
+        paddingRight: '0.25rem'
+      }}
+    >
       {/* 1. Candidate Executive Overview Card */}
       <div style={{
         background: '#FFFFFF',

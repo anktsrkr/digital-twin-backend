@@ -1042,14 +1042,17 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
 
         {/* ========== MESSAGE LIST (shown when messages exist) ========== */}
         {hasMessages && (
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '1.25rem 1.35rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.95rem'
-          }}>
+          <div 
+            className="autohide-scrollbar"
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '1.25rem 1.35rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.95rem'
+            }}
+          >
             {agent.messages.map((msg: any, index: number) => {
               // 1. Skip non-conversational reasoning messages if present in history
               if (msg.role === 'reasoning' || msg.type === 'reasoning') {
