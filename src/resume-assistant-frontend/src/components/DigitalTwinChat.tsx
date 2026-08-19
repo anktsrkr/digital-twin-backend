@@ -359,8 +359,9 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
   const authRef = useRef({ isAuthenticated, recruiterEmail });
   authRef.current = { isAuthenticated, recruiterEmail };
 
-  // Pending slot to book after authentication
+  // Pending slot or prompt to execute after authentication
   const pendingSlotRef = useRef<{ slot: any; duration: number } | null>(null);
+  const pendingPromptRef = useRef<string | null>(null);
 
   // Handle slot booking — sends a message to trigger BookInterviewSlot via the agent
   const handleSlotBooking = useCallback(async (slot: any, duration: number) => {
@@ -399,10 +400,12 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
 
   // If recruiter completes authentication while having a pending slot, auto-book it immediately
   useEffect(() => {
-    if (isAuthenticated && pendingSlotRef.current) {
-      const { slot, duration } = pendingSlotRef.current;
-      pendingSlotRef.current = null;
-      handleSlotBooking(slot, duration);
+    if (isAuthenticated) {
+      if (pendingSlotRef.current) {
+        const { slot, duration } = pendingSlotRef.current;
+        pendingSlotRef.current = null;
+        handleSlotBooking(slot, duration);
+      }
     }
   }, [isAuthenticated, handleSlotBooking]);
 
@@ -743,6 +746,15 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
     const text = messageText || input.trim();
     if (!text) return;
 
+    const email = authRef.current.recruiterEmail || recruiterEmail || localStorage.getItem('recruiter_email');
+    const isAuthed = authRef.current.isAuthenticated || isAuthenticated || !!email;
+
+    if (!isAuthed) {
+      pendingPromptRef.current = text;
+      onOpenAuth();
+      return;
+    }
+
     // Prune any legacy reasoning messages from frontend state
     if (Array.isArray(agent.messages) && typeof (agent as any).setMessages === 'function') {
       const clean = agent.messages.filter((m: any) => m.role !== 'reasoning' && m.type !== 'reasoning' && m.role !== 'activity');
@@ -761,7 +773,7 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
     inputRef.current?.focus();
 
     await copilotkit.runAgent({ agent });
-  }, [input, agent, copilotkit]);
+  }, [input, agent, copilotkit, isAuthenticated, recruiterEmail, onOpenAuth]);
 
   // Stop agent handler
   const stopAgent = useCallback(() => {
@@ -776,14 +788,18 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
       link.href = '/resume.pdf';
       link.download = 'Ankit_Sarkar_AI_Solutions_Architect_Resume.pdf';
       link.click();
-      // Also request resume card from agent
-      sendMessage(pill.prompt || "Can I download Ankit Sarkar's resume PDF?");
+
+      const email = authRef.current.recruiterEmail || recruiterEmail || localStorage.getItem('recruiter_email');
+      const isAuthed = authRef.current.isAuthenticated || isAuthenticated || !!email;
+      if (isAuthed) {
+        sendMessage(pill.prompt || "Can I download Ankit Sarkar's resume PDF?");
+      }
     } else if (pill.action_type === 'book_call' || pill.id.includes('book')) {
-      sendMessage(pill.prompt || "When is Ankit available for an interview?");
+      sendMessage(pill.prompt || "When is Ankit available for an interview or screening call?");
     } else {
       sendMessage(pill.prompt);
     }
-  }, [sendMessage]);
+  }, [sendMessage, isAuthenticated, recruiterEmail]);
 
   // Query the independent FollowUpAgent whenever agent finishes streaming a response
   useEffect(() => {

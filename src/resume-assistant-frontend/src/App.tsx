@@ -47,12 +47,21 @@ export function App() {
     };
   }, []);
 
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+
   const handleAuthSuccess = (email: string, company?: string) => {
     setIsAuthenticated(true);
     setRecruiterEmail(email);
     if (company) setRecruiterCompany(company);
     localStorage.setItem('recruiter_email', email);
     if (company) localStorage.setItem('recruiter_company', company);
+
+    // If a prompt was queued before logging in, trigger it now!
+    if (pendingPrompt) {
+      setSelectedPrompt(pendingPrompt);
+      setPendingPrompt(null);
+      setMobileTab('terminal');
+    }
   };
 
   const handleSignOut = async () => {
@@ -74,10 +83,16 @@ export function App() {
   }, []);
 
   const handleSelectPrompt = useCallback((prompt: string) => {
+    const isAuthed = isAuthenticated || !!localStorage.getItem('recruiter_email');
+    if (!isAuthed) {
+      setPendingPrompt(prompt);
+      setIsAuthOpen(true);
+      return;
+    }
     setSelectedPrompt(prompt);
     // On mobile, auto-switch to terminal tab to see the live response
     setMobileTab('terminal');
-  }, []);
+  }, [isAuthenticated]);
 
   const handleScheduleClick = useCallback(() => {
     handleSelectPrompt("When is Ankit available for an interview or screening call?");
