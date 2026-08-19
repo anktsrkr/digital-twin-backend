@@ -8,7 +8,12 @@ import {
   AlertCircle,
   BookOpen,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Terminal,
+  Zap,
+  Bot,
+  Building2,
+  Calendar
 } from 'lucide-react';
 import { 
   useAgent,
@@ -34,16 +39,39 @@ interface DigitalTwinChatProps {
   onAgentStateChange?: (isRunning: boolean) => void;
 }
 
-const WELCOME_CARD_MARKDOWN = `
-I am grounded on Ankit's verified engineering resume and architecture portfolio. Ask me anything about my **13+ years of experience as an AI Solutions Architect & Principal Engineer** on Microsoft Azure:
+interface QuickPromptItem {
+  icon: React.ReactNode;
+  title: string;
+  prompt: string;
+  tag: string;
+}
 
-- **ASDA eCommerce Picking Platform:** Architected Azure platform serving 700k+ weekly orders & 90k/30-min peak trading with 0 critical incidents.
-- **Agentic AI & Multi-Agent Systems:** Microsoft Agent Framework, Azure AI Foundry, Model Context Protocol (MCP), and A2A.
-- **Enterprise RAG & SpiceDB Security:** Fine-grained relationship-based access control (ReBAC) authorization and pgvector search.
-- **Enterprise Modernisation:** Boots UK (25k users, Stub Identity Platform) & Belgian National Railways (NMBS).
-
-Click any suggestion pill below or ask a technical screening question!
-`;
+const QUICK_PROMPTS: QuickPromptItem[] = [
+  {
+    icon: <Zap size={15} color="#D97706" />,
+    title: "ASDA Peak Resilience",
+    prompt: "How was zero downtime maintained during 90k/30-min peak trading surges at ASDA?",
+    tag: "High Scale"
+  },
+  {
+    icon: <Bot size={15} color="#2563EB" />,
+    title: "Enterprise Agentic AI",
+    prompt: "How do you implement secure MCP tool calling and SpiceDB ReBAC in production?",
+    tag: "AI & Security"
+  },
+  {
+    icon: <Building2 size={15} color="#059669" />,
+    title: "Cloud Modernisation",
+    prompt: "Walk me through the Boots UK 25k-user identity and cloud modernisation.",
+    tag: "Cloud Native"
+  },
+  {
+    icon: <Calendar size={15} color="#0F172A" />,
+    title: "Interview Availability",
+    prompt: "When is Ankit available for an interview or technical screening call?",
+    tag: "Live Scheduling"
+  }
+];
 
 const INITIAL_PILLS: FollowUpPillItem[] = [
   {
@@ -893,51 +921,105 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '2rem 1.5rem',
+            padding: '1.75rem 1.5rem',
             textAlign: 'center',
             overflowY: 'auto'
           }}>
+            {/* Header Badge */}
             <div style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '12px',
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
               background: 'var(--accent-slate)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#FFFFFF',
-              marginBottom: '0.85rem',
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)'
+              marginBottom: '0.65rem',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)'
             }}>
-              <BookOpen size={22} />
+              <Terminal size={20} />
             </div>
 
             <h2 style={{
-              fontSize: '1.25rem',
+              fontSize: '1.2rem',
               fontWeight: 700,
               color: 'var(--text-primary)',
               letterSpacing: '-0.025em',
-              marginBottom: '0.4rem'
+              marginBottom: '0.25rem'
             }}>
-              Interactive Engineering Portfolio & Digital Twin
+              Interactive Architecture Terminal
             </h2>
-
-            <div className="markdown-content" style={{
-              maxWidth: '680px',
-              fontSize: '0.85rem',
-              lineHeight: 1.62,
-              color: 'var(--text-secondary)',
-              textAlign: 'left',
-              margin: '0.6rem auto 1.25rem',
-              background: 'var(--bg-surface-muted)',
-              padding: '1.15rem 1.35rem',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-hairline)'
+            <p style={{
+              fontSize: '0.82rem',
+              color: 'var(--text-muted)',
+              maxWidth: '520px',
+              marginBottom: '1.25rem',
+              lineHeight: 1.5
             }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {WELCOME_CARD_MARKDOWN}
-              </ReactMarkdown>
+              Directly query Ankit's verified engineering portfolio, peak scale system designs, and live screening availability.
+            </p>
+
+            {/* Quick Prompt Command Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '0.65rem',
+              maxWidth: '680px',
+              width: '100%',
+              marginBottom: '1.25rem'
+            }}>
+              {QUICK_PROMPTS.map((item, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => sendMessage(item.prompt)}
+                  disabled={agent.isRunning}
+                  style={{
+                    background: 'var(--bg-surface-subtle)',
+                    border: '1px solid var(--border-hairline)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.85rem 1rem',
+                    textAlign: 'left',
+                    cursor: agent.isRunning ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '0.35rem',
+                    transition: 'all 0.12s ease',
+                    boxShadow: 'var(--shadow-xs)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (agent.isRunning) return;
+                    e.currentTarget.style.borderColor = 'var(--accent-slate)';
+                    e.currentTarget.style.background = '#FFFFFF';
+                    e.currentTarget.style.transform = 'translateY(-1.5px)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (agent.isRunning) return;
+                    e.currentTarget.style.borderColor = 'var(--border-hairline)';
+                    e.currentTarget.style.background = 'var(--bg-surface-subtle)';
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      {item.icon}
+                      <span style={{ fontSize: '0.78125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {item.title}
+                      </span>
+                    </div>
+                    <span className="badge-mono" style={{ fontSize: '0.6rem', padding: '0.05rem 0.3rem' }}>
+                      {item.tag}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                    "{item.prompt}"
+                  </p>
+                </button>
+              ))}
             </div>
 
             {/* Actionable Recruiter Suggestion Pills */}
