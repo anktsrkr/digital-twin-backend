@@ -130,7 +130,7 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
           border: '1px solid var(--border-hairline)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.45rem'
+          gap: '0.38rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', fontSize: '0.73rem', gap: '0.5rem' }}>
             <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>Open To:</span>
@@ -139,16 +139,20 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Location:</span>
-            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>London / Hybrid / Remote</span>
+            <span style={{ color: 'var(--text-muted)' }}>Based In:</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>United Kingdom</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Work Mode:</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>London (Hybrid) • Remote • Relocate</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
             <span style={{ color: 'var(--text-muted)' }}>Work Rights:</span>
-            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>UK Skilled Worker (Confirmed)</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>UK Global Business Mobility (GBM)</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
             <span style={{ color: 'var(--text-muted)' }}>Availability:</span>
-            <span style={{ fontWeight: 600, color: 'var(--accent-emerald)' }}>Immediate / 1 Month Notice</span>
+            <span style={{ fontWeight: 600, color: 'var(--accent-emerald)' }}>3 Months Notice</span>
           </div>
         </div>
 

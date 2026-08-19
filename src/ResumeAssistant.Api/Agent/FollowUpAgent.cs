@@ -121,7 +121,7 @@ public sealed class FollowUpAgent : IFollowUpAgent
         var conversationSummary = string.Join("\n", recentMessages.Select(m => $"{m.Role.ToUpperInvariant()}: {m.Content}"));
 
         var systemPrompt = """
-            You are an expert Technical Recruiter & Engineering Hiring Manager Assistant. You are screening Ankit Sarkar for a Principal AI Engineer / Solutions Architect role (13+ yrs experience, ASDA eCommerce Picking Platform 700k/wk, Microsoft Agent Framework, Model Context Protocol (MCP), SpiceDB ReBAC RAG, Boots UK, NMBS, UK Skilled Worker Visa).
+            You are an expert Technical Recruiter & Engineering Hiring Manager Assistant. You are screening Ankit Sarkar for a Principal AI Engineer / Solutions Architect role (13+ yrs experience, ASDA eCommerce Picking Platform 700k/wk, Microsoft Agent Framework, Model Context Protocol (MCP), SpiceDB ReBAC RAG, Boots UK, NMBS, UK Global Business Mobility Visa).
 
             Analyze the recent conversation between the interviewer (recruiter / hiring manager) and Ankit's Digital Twin.
             Generate 2 to 3 sharp, probing follow-up screening questions that a Director of Engineering, Chief Architect, or Lead Recruiter would naturally ask Ankit next to evaluate his seniority, technical depth, ownership, or hiring fit.
@@ -130,14 +130,14 @@ public sealed class FollowUpAgent : IFollowUpAgent
             - Architecture & Scale Depth: Probe specific failure modes, distributed state, concurrency, latency, or 0-downtime strategies.
             - Architectural Trade-offs & Tech Choices: Probe why he chose a specific technology (e.g. SpiceDB ReBAC vs RBAC, MCP vs custom REST, Semantic Kernel vs custom agent loops).
             - Leadership & Scope of Ownership: Probe his specific lead role vs individual contributor scope, mentoring, or multi-vendor team leadership.
-            - Logistics & Due Diligence: If technical topics have been covered, probe notice period, UK Skilled Worker sponsorship readiness, or hybrid/remote preferences.
+            - Logistics & Due Diligence: If technical topics have been covered, probe 3-month notice period, UK Skilled Worker sponsorship transfer, or global remote preferences.
 
             Rules:
             1. Direct Candidate Address: Phrase every question in the second person ("you", "your architecture", "did you handle").
             2. Probing & Competency-Based: Avoid basic introductory questions (e.g. "What is AI?"). Ask high-conviction screening questions.
             3. Crisp & Punchy: Keep each question between 8 and 14 words.
             4. Return ONLY a valid JSON array of strings, for example:
-               ["How did you achieve zero downtime during ASDA's 90k/30-min peak trading?", "How do you evaluate multi-agent orchestration reliability and tool security?", "What is your notice period and UK Skilled Worker visa sponsorship timeline?"]
+               ["How did you achieve zero downtime during ASDA's 90k/30-min peak trading?", "How do you evaluate multi-agent orchestration reliability and tool security?", "What is your notice period and UK visa sponsorship timeline?"]
             5. Do not include markdown fences, code blocks, or extra text. Output ONLY the raw JSON array.
             """;
 
@@ -215,11 +215,11 @@ public sealed class FollowUpAgent : IFollowUpAgent
         new()
         {
             Id = "default-visa",
-            Label = "UK Visa Sponsorship & Availability",
+            Label = "Work Rights & Availability",
             ActionType = "ask_question",
             Category = "Authorisation",
             Icon = "sparkles",
-            Prompt = "What is your UK Skilled Worker visa status, notice period, and location preference?"
+            Prompt = "What is your UK visa status, notice period, and relocation / remote preference?"
         }
     ];
 }

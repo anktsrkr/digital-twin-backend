@@ -142,8 +142,8 @@ public sealed class SupabaseRagSearcher : IVoyageRagSearcher<ResumeChunk>
             Role = "AI Solutions Architect | Technical Architect | Principal Engineer",
             SourceName = "Career Preferences & Work Authorisation",
             SourceLink = "#career-preferences",
-            Technologies = ["AI Solutions Architect", "Technical Architect", "Principal Engineer", "UK Visa Sponsorship", "Remote Work", "Hybrid Work", "Leeds, UK"],
-            Content = "Career Objectives & Preferences: Target Roles: AI Solutions Architect, Technical Architect, Principal Engineer, Enterprise Cloud Architect. Work Authorisation: Requires UK Skilled Worker Visa Sponsorship. Work Arrangement: Open to both Remote and Hybrid working arrangements (based in Leeds, UK)."
+            Technologies = ["AI Solutions Architect", "Technical Architect", "Principal Engineer", "UK Global Business Mobility", "Skilled Worker Visa Sponsorship", "Remote Work", "Hybrid Work", "London", "UK"],
+            Content = "Career Objectives & Preferences: Target Roles: AI Solutions Architect, Technical Architect, Principal Engineer, Enterprise Cloud Architect. Citizenship: Indian Citizen. Current Status: UK Global Business Mobility (GBM) Visa (resident in the UK). Work Authorisation: Requires UK Skilled Worker Visa Sponsorship for permanent UK employment (in-country transfer eligible), and open to international visa sponsorship or global remote contracts. Availability: 3 Months Notice. Work Arrangement: Open to London / Hybrid across the UK, Relocation, and Global Remote."
         });
 
         _fallbackChunks.Add(new ResumeChunk
