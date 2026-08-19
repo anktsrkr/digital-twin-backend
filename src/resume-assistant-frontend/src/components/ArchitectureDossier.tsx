@@ -121,24 +121,30 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
           Architecting high-scale cloud platforms and enterprise agentic systems on Microsoft Azure.
         </p>
 
-        {/* Quick Visa & Location Status */}
+        {/* Candidate Target Positioning & Work Preferences */}
         <div style={{
-          marginTop: '0.7rem',
-          padding: '0.6rem 0.75rem',
+          marginTop: '0.75rem',
+          padding: '0.65rem 0.8rem',
           background: 'var(--bg-surface-subtle)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-hairline)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.35rem'
+          gap: '0.45rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Visa Status:</span>
-            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>UK Skilled Worker (Confirmed)</span>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', fontSize: '0.73rem', gap: '0.5rem' }}>
+            <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>Open To:</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>
+              AI Solutions Architect • Principal • Staff
+            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Location Pref:</span>
+            <span style={{ color: 'var(--text-muted)' }}>Location:</span>
             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>London / Hybrid / Remote</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Work Rights:</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>UK Skilled Worker (Confirmed)</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
             <span style={{ color: 'var(--text-muted)' }}>Availability:</span>
