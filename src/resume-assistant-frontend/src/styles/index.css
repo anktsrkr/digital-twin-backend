@@ -4,7 +4,7 @@
   /* =========================================================================
      EXECUTIVE EDITORIAL DESIGN SYSTEM (Anti-AI-Slop Light Mode)
      ========================================================================= */
-  --font-sans: 'Geist', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
 
   /* CopilotKit Core Variable Mapping */
