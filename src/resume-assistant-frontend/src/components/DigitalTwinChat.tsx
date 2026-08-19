@@ -936,8 +936,8 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'flex-start',
-            padding: '2.25rem 1.5rem 1.5rem',
+            justifyContent: 'center',
+            padding: '1.5rem',
             textAlign: 'center',
             overflowY: 'auto'
           }}>
