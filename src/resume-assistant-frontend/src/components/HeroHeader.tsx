@@ -30,7 +30,7 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       borderBottom: '1px solid var(--border-hairline)',
-      padding: '0.7rem 1.25rem',
+      padding: '0.45rem 1.25rem',
       transition: 'all 0.15s ease'
     }}>
       <div style={{

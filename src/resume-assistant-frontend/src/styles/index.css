@@ -517,7 +517,7 @@ body {
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
-  padding: 0 1.25rem 1rem;
+  padding: 0.45rem 1.25rem 0.65rem;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -528,8 +528,16 @@ body {
   grid-template-columns: 390px 1fr;
   gap: 1.15rem;
   flex: 1;
-  height: calc(100vh - 86px);
+  height: calc(100vh - 64px);
   min-height: 600px;
+}
+
+/* Hide CopilotKit dev floating badge */
+.copilotKitDevConsole,
+[data-copilotkit-dev-console],
+button[aria-label="Open CopilotKit Dev Console"],
+.copilotkit-dev-console {
+  display: none !important;
 }
 
 .dossier-pane {
