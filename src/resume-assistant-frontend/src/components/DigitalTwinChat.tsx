@@ -29,6 +29,9 @@ interface DigitalTwinChatProps {
   recruiterEmail?: string;
   onOpenAuth: () => void;
   onOpenCitation: (citation: CitationDetail) => void;
+  externalPrompt?: string | null;
+  onClearExternalPrompt?: () => void;
+  onAgentStateChange?: (isRunning: boolean) => void;
 }
 
 const WELCOME_CARD_MARKDOWN = `
@@ -298,7 +301,10 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
   isAuthenticated,
   recruiterEmail,
   onOpenAuth,
-  onOpenCitation
+  onOpenCitation,
+  externalPrompt,
+  onClearExternalPrompt,
+  onAgentStateChange
 }) => {
   const { agent } = useAgent();
   const { copilotkit } = useCopilotKit();
@@ -313,6 +319,13 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
   const backendUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
     ? 'http://localhost:5000'
     : (import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000');
+
+  // Notify parent of agent running state
+  useEffect(() => {
+    if (onAgentStateChange) {
+      onAgentStateChange(agent.isRunning);
+    }
+  }, [agent.isRunning, onAgentStateChange]);
 
   // Maintain fresh auth state in ref so callbacks and tool renders always see latest session
   const authRef = useRef({ isAuthenticated, recruiterEmail });
@@ -818,6 +831,14 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
     };
   }, [onOpenCitation]);
 
+  // Handle external prompt injection from sidebar
+  useEffect(() => {
+    if (externalPrompt && !agent.isRunning) {
+      sendMessage(externalPrompt);
+      if (onClearExternalPrompt) onClearExternalPrompt();
+    }
+  }, [externalPrompt, agent.isRunning, sendMessage, onClearExternalPrompt]);
+
   const hasMessages = agent.messages.length > 0;
 
   return (
@@ -826,22 +847,43 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
       flexDirection: 'column',
       flex: 1,
       width: '100%',
-      maxWidth: '860px',
-      margin: '0 auto',
+      height: '100%',
       position: 'relative',
-      height: 'calc(100vh - 84px)'
+      overflow: 'hidden'
     }}>
       <div style={{
         flex: 1,
-        borderRadius: '16px',
+        borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
         border: '1px solid var(--border-hairline)',
-        boxShadow: 'var(--shadow-sm)',
+        boxShadow: 'var(--shadow-xs)',
         background: '#FFFFFF',
         position: 'relative',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        height: '100%'
       }}>
+        {/* Terminal Header Bar */}
+        <div style={{
+          padding: '0.55rem 1rem',
+          background: 'var(--bg-surface-subtle)',
+          borderBottom: '1px solid var(--border-hairline)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.45rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <span className="status-dot"></span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Interactive Digital Twin Terminal
+            </span>
+          </div>
+          <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+            Grounded on Verified Production Architecture
+          </span>
+        </div>
 
         {/* ========== WELCOME SCREEN (shown when no messages) ========== */}
         {!hasMessages && (
@@ -1020,7 +1062,6 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
                 <div className="telemetry-spinner" />
                 <div className="telemetry-text">
                   <span>Ankit's Digital Twin is synthesizing response...</span>
-                  <span className="telemetry-badge">Azure AI Foundry • pgvector</span>
                 </div>
               </div>
             )}

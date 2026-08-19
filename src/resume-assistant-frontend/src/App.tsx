@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { CopilotKit } from '@copilotkit/react-core';
 import { HeroHeader } from './components/HeroHeader';
+import { ArchitectureDossier } from './components/ArchitectureDossier';
 import { DigitalTwinChat } from './components/DigitalTwinChat';
 import { AuthModal } from './components/AuthModal';
 import { CitationDrawer, type CitationDetail } from './components/CitationDrawer';
 import { supabase } from './lib/supabaseClient';
+import { BookOpen, Terminal } from 'lucide-react';
 import './styles/index.css';
 
 export function App() {
@@ -13,6 +15,9 @@ export function App() {
   const [recruiterCompany, setRecruiterCompany] = useState<string | undefined>(undefined);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [selectedCitation, setSelectedCitation] = useState<CitationDetail | null>(null);
+  const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+  const [isAgentRunning, setIsAgentRunning] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'dossier' | 'terminal'>('dossier');
 
   const backendUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
     ? 'http://localhost:5000'
@@ -61,6 +66,19 @@ export function App() {
     localStorage.removeItem('recruiter_company');
   };
 
+  const handleDownloadPdf = useCallback(() => {
+    const link = document.createElement('a');
+    link.href = '/resume.pdf';
+    link.download = 'Ankit_Sarkar_AI_Solutions_Architect_Resume.pdf';
+    link.click();
+  }, []);
+
+  const handleSelectPrompt = (prompt: string) => {
+    setSelectedPrompt(prompt);
+    // On mobile, auto-switch to terminal tab to see the live response
+    setMobileTab('terminal');
+  };
+
   const copilotHeaders = useMemo(() => ({
     ...(recruiterEmail ? { 'X-Recruiter-Email': recruiterEmail } : {}),
     ...(recruiterCompany ? { 'X-Recruiter-Company': recruiterCompany } : {})
@@ -81,22 +99,54 @@ export function App() {
           onOpenAuth={() => setIsAuthOpen(true)}
           onSignOut={handleSignOut}
           onScheduleClick={() => window.open('https://cal.com/anktsrkr', '_blank')}
-          onDownloadPdf={() => {
-            const link = document.createElement('a');
-            link.href = '/resume.pdf';
-            link.download = 'Ankit_Sarkar_AI_Solutions_Architect_Resume.pdf';
-            link.click();
-          }}
+          onDownloadPdf={handleDownloadPdf}
         />
 
-        <main style={{ flex: 1, padding: '0 1rem 1.5rem', display: 'flex', flexDirection: 'column' }}>
-          <DigitalTwinChat
-            isAuthenticated={isAuthenticated}
-            recruiterEmail={recruiterEmail}
-            onOpenAuth={() => setIsAuthOpen(true)}
-            onOpenCitation={(citation) => setSelectedCitation(citation)}
-          />
-        </main>
+        <div className="console-container">
+          {/* Mobile Segmented View Switcher */}
+          <div className="mobile-pane-switcher">
+            <button
+              className={`mobile-tab-btn ${mobileTab === 'dossier' ? 'active' : ''}`}
+              onClick={() => setMobileTab('dossier')}
+            >
+              <BookOpen size={14} />
+              <span>Architecture Dossier</span>
+            </button>
+            <button
+              className={`mobile-tab-btn ${mobileTab === 'terminal' ? 'active' : ''}`}
+              onClick={() => setMobileTab('terminal')}
+            >
+              <Terminal size={14} />
+              <span>Digital Twin Terminal {isAgentRunning ? '⚡' : ''}</span>
+            </button>
+          </div>
+
+          {/* Main Dual-Pane Console Grid */}
+          <main className="console-main-grid">
+            {/* Left Pane: Architecture Dossier */}
+            <section className={`dossier-pane ${mobileTab !== 'dossier' ? 'hide-mobile' : ''}`}>
+              <ArchitectureDossier
+                onSelectPrompt={handleSelectPrompt}
+                onScheduleClick={() => window.open('https://cal.com/anktsrkr', '_blank')}
+                onDownloadPdf={handleDownloadPdf}
+                isAgentRunning={isAgentRunning}
+              />
+            </section>
+
+            {/* Right Pane: Digital Twin Interactive Console */}
+            <section className={`terminal-pane ${mobileTab !== 'terminal' ? 'hide-mobile' : ''}`}>
+              <DigitalTwinChat
+                isAuthenticated={isAuthenticated}
+                recruiterEmail={recruiterEmail}
+                onOpenAuth={() => setIsAuthOpen(true)}
+                onOpenCitation={(citation) => setSelectedCitation(citation)}
+                externalPrompt={selectedPrompt}
+                onClearExternalPrompt={() => setSelectedPrompt(null)}
+                onAgentStateChange={setIsAgentRunning}
+              />
+            </section>
+          </main>
+        </div>
 
         {/* Recruiter Magic Link Modal */}
         <AuthModal

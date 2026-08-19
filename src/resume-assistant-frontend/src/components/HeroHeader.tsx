@@ -34,7 +34,7 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
       transition: 'all 0.15s ease'
     }}>
       <div style={{
-        maxWidth: '1080px',
+        maxWidth: '1400px',
         margin: '0 auto',
         display: 'flex',
         alignItems: 'center',
