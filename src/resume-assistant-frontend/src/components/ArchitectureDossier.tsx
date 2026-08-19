@@ -104,34 +104,15 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
         padding: '1.2rem',
         boxShadow: 'var(--shadow-xs)'
       }}>
-        {/* Identity, Avatar & Experience Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: 'var(--accent-slate)',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              letterSpacing: '-0.02em',
-              flexShrink: 0,
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)'
-            }}>
-              AS
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                Ankit Sarkar
-              </h3>
-              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                AI Solutions Architect & Principal
-              </span>
-            </div>
+        {/* Candidate Identity & Experience Badge */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2 }}>
+              Ankit Sarkar
+            </h3>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              AI Solutions Architect & Principal
+            </span>
           </div>
           <span className="badge-mono">13+ Yrs Exp</span>
         </div>
