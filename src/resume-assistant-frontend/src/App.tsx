@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { CopilotKit } from '@copilotkit/react-core';
-import { HeroHeader } from './components/HeroHeader';
 import { ArchitectureDossier } from './components/ArchitectureDossier';
 import { DigitalTwinChat } from './components/DigitalTwinChat';
 import { AuthModal } from './components/AuthModal';
@@ -32,6 +31,15 @@ export function App() {
       setRecruiterEmail(savedEmail);
       if (savedCompany) setRecruiterCompany(savedCompany);
     }
+
+    // Check active Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setIsAuthenticated(true);
+        setRecruiterEmail(session.user.email);
+        localStorage.setItem('recruiter_email', session.user.email);
+      }
+    });
 
     // Listen to Supabase Auth State Changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -111,16 +119,6 @@ export function App() {
       headers={copilotHeaders}
     >
       <div style={{ height: '100vh', maxHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <HeroHeader
-          isAuthenticated={isAuthenticated}
-          recruiterEmail={recruiterEmail}
-          recruiterCompany={recruiterCompany}
-          onOpenAuth={() => setIsAuthOpen(true)}
-          onSignOut={handleSignOut}
-          onScheduleClick={handleScheduleClick}
-          onDownloadPdf={handleDownloadPdf}
-        />
-
         <div className="console-container">
           {/* Mobile Segmented View Switcher */}
           <div className="mobile-pane-switcher">
@@ -149,6 +147,11 @@ export function App() {
                 onScheduleClick={handleScheduleClick}
                 onDownloadPdf={handleDownloadPdf}
                 isAgentRunning={isAgentRunning}
+                isAuthenticated={isAuthenticated}
+                recruiterEmail={recruiterEmail}
+                recruiterCompany={recruiterCompany}
+                onOpenAuth={() => setIsAuthOpen(true)}
+                onSignOut={handleSignOut}
               />
             </section>
 

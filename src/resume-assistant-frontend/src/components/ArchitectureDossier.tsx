@@ -5,7 +5,10 @@ import {
   Building2, 
   Calendar, 
   Download, 
-  ChevronRight
+  ChevronRight,
+  Globe,
+  ShieldCheck,
+  KeyRound
 } from 'lucide-react';
 
 export interface ArchitectureDossierProps {
@@ -13,6 +16,11 @@ export interface ArchitectureDossierProps {
   onScheduleClick: () => void;
   onDownloadPdf: () => void;
   isAgentRunning?: boolean;
+  isAuthenticated?: boolean;
+  recruiterEmail?: string;
+  recruiterCompany?: string;
+  onOpenAuth?: () => void;
+  onSignOut?: () => void;
 }
 
 interface CaseStudy {
@@ -69,7 +77,12 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
   onSelectPrompt,
   onScheduleClick,
   onDownloadPdf,
-  isAgentRunning = false
+  isAgentRunning = false,
+  isAuthenticated = false,
+  recruiterEmail,
+  recruiterCompany,
+  onOpenAuth,
+  onSignOut
 }) => {
   const [activeTab, setActiveTab] = useState<'case-studies' | 'tech-matrix'>('case-studies');
 
@@ -91,26 +104,52 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
         padding: '1.2rem',
         boxShadow: 'var(--shadow-xs)'
       }}>
+        {/* Top Status & Experience row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span className="status-dot"></span>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-emerald)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Live Digital Twin Dossier
+              Digital Twin Dossier
             </span>
           </div>
           <span className="badge-mono">13+ Yrs Exp</span>
         </div>
 
-        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>
-          Ankit Sarkar
-        </h3>
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.45 }}>
-          AI Solutions Architect & Principal Engineer specializing in high-scale cloud platforms and enterprise agentic systems.
+        {/* Identity & Avatar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.4rem' }}>
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '9px',
+            background: 'var(--accent-slate)',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+            letterSpacing: '-0.02em',
+            flexShrink: 0
+          }}>
+            AS
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              Ankit Sarkar
+            </h3>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+              AI Solutions Architect & Principal
+            </span>
+          </div>
+        </div>
+
+        <p style={{ fontSize: '0.78125rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.45 }}>
+          Architecting high-scale cloud platforms and enterprise agentic systems on Microsoft Azure.
         </p>
 
         {/* Quick Visa & Location Status */}
         <div style={{
-          marginTop: '0.75rem',
+          marginTop: '0.7rem',
           padding: '0.6rem 0.75rem',
           background: 'var(--bg-surface-subtle)',
           borderRadius: 'var(--radius-md)',
@@ -119,22 +158,94 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
           flexDirection: 'column',
           gap: '0.35rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
             <span style={{ color: 'var(--text-muted)' }}>Visa Status:</span>
             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>UK Skilled Worker (Confirmed)</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
             <span style={{ color: 'var(--text-muted)' }}>Location Pref:</span>
             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>London / Hybrid / Remote</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.73rem' }}>
             <span style={{ color: 'var(--text-muted)' }}>Availability:</span>
             <span style={{ fontWeight: 600, color: 'var(--accent-emerald)' }}>Immediate / 1 Month Notice</span>
           </div>
         </div>
 
+        {/* Social Links & Recruiter Auth Status Row */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginTop: '0.75rem',
+          paddingTop: '0.65rem',
+          borderTop: '1px solid var(--border-hairline)',
+          flexWrap: 'wrap',
+          gap: '0.4rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <a href="https://anktsrkr.github.io" target="_blank" rel="noreferrer" className="btn-icon" title="Technical Blog">
+              <Globe size={13} color="var(--text-secondary)" />
+            </a>
+            <a href="https://github.com/anktsrkr" target="_blank" rel="noreferrer" className="btn-icon" title="GitHub">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+                <path d="M9 18c-4.51 2-5-2-7-2" />
+              </svg>
+            </a>
+            <a href="https://linkedin.com/in/sarkaran" target="_blank" rel="noreferrer" className="btn-icon" title="LinkedIn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0A66C2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                <rect x="2" y="9" width="4" height="12" />
+                <circle cx="4" cy="4" r="2" />
+              </svg>
+            </a>
+          </div>
+
+          {isAuthenticated ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              background: 'var(--accent-emerald-subtle)',
+              border: '1px solid var(--accent-emerald-border)',
+              padding: '0.2rem 0.5rem',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.72rem'
+            }}>
+              <ShieldCheck size={12} color="var(--accent-emerald)" />
+              <span style={{ fontWeight: 600, color: '#065F46' }}>
+                {recruiterCompany ? `${recruiterCompany}` : (recruiterEmail?.split('@')[0] || 'Recruiter')}
+              </span>
+              <button 
+                onClick={onSignOut}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontSize: '0.68rem',
+                  textDecoration: 'underline',
+                  marginLeft: '0.15rem'
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={onOpenAuth} 
+              className="btn-secondary" 
+              style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', gap: '0.3rem' }}
+            >
+              <KeyRound size={12} />
+              <span>Recruiter Access</span>
+            </button>
+          )}
+        </div>
+
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.45rem', marginTop: '0.85rem' }}>
+        <div style={{ display: 'flex', gap: '0.45rem', marginTop: '0.75rem' }}>
           <button 
             onClick={onScheduleClick} 
             className="btn-primary" 
