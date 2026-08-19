@@ -104,43 +104,36 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
         padding: '1.2rem',
         boxShadow: 'var(--shadow-xs)'
       }}>
-        {/* Top Status & Experience row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span className="status-dot"></span>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-emerald)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Digital Twin Dossier
-            </span>
+        {/* Identity, Avatar & Experience Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: 'var(--accent-slate)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              letterSpacing: '-0.02em',
+              flexShrink: 0,
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)'
+            }}>
+              AS
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                Ankit Sarkar
+              </h3>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                AI Solutions Architect & Principal
+              </span>
+            </div>
           </div>
           <span className="badge-mono">13+ Yrs Exp</span>
-        </div>
-
-        {/* Identity & Avatar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.4rem' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '9px',
-            background: 'var(--accent-slate)',
-            color: '#FFFFFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: '0.9rem',
-            letterSpacing: '-0.02em',
-            flexShrink: 0
-          }}>
-            AS
-          </div>
-          <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              Ankit Sarkar
-            </h3>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-              AI Solutions Architect & Principal
-            </span>
-          </div>
         </div>
 
         <p style={{ fontSize: '0.78125rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.45 }}>
