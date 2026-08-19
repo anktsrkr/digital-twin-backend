@@ -1037,16 +1037,6 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
                 </button>
               ))}
             </div>
-
-            {/* Actionable Recruiter Suggestion Pills */}
-            <div style={{ maxWidth: '680px', width: '100%' }}>
-              <FollowUpPills
-                pills={followUpPills}
-                onSelectPill={handleSelectPill}
-                variant="welcome"
-                disabled={agent.isRunning}
-              />
-            </div>
           </div>
         )}
 
