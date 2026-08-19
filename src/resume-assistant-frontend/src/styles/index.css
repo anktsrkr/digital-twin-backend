@@ -85,6 +85,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.015em;
+  overflow: hidden;
 }
 
 body {
@@ -517,10 +518,12 @@ body {
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
-  padding: 0.45rem 1.25rem 0.65rem;
+  padding: 0.45rem 1.25rem 0.5rem;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .console-main-grid {
@@ -528,8 +531,9 @@ body {
   grid-template-columns: 390px 1fr;
   gap: 1.15rem;
   flex: 1;
-  height: calc(100vh - 64px);
-  min-height: 600px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Hide CopilotKit dev floating badge */
@@ -542,6 +546,7 @@ button[aria-label="Open CopilotKit Dev Console"],
 
 .dossier-pane {
   height: 100%;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -549,6 +554,7 @@ button[aria-label="Open CopilotKit Dev Console"],
 
 .terminal-pane {
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -567,8 +573,15 @@ button[aria-label="Open CopilotKit Dev Console"],
 }
 
 @media (max-width: 860px) {
+  html, body {
+    overflow-y: auto;
+    height: auto;
+  }
+
   .console-container {
     padding: 0 0.75rem 0.75rem;
+    height: auto;
+    overflow: visible;
   }
 
   .console-main-grid {
@@ -576,6 +589,7 @@ button[aria-label="Open CopilotKit Dev Console"],
     flex-direction: column;
     height: auto;
     min-height: 0;
+    overflow: visible;
   }
 
   .mobile-pane-switcher {

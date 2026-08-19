@@ -1185,14 +1185,18 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
           </div>
         )}
 
-        {/* ========== INPUT AREA ========== */}
+        {/* ========== INPUT AREA (Permanently Docked at Bottom) ========== */}
         <div style={{
-          borderTop: hasMessages ? 'none' : '1px solid var(--border-hairline)',
+          borderTop: '1px solid var(--border-hairline)',
           padding: '0.65rem 0.95rem',
           background: '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem'
+          gap: '0.5rem',
+          flexShrink: 0,
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 5
         }}>
           <form
             onSubmit={(e) => { e.preventDefault(); sendMessage(); }}

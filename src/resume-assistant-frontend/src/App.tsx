@@ -110,7 +110,7 @@ export function App() {
       showDevConsole={false}
       headers={copilotHeaders}
     >
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: '100vh', maxHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <HeroHeader
           isAuthenticated={isAuthenticated}
           recruiterEmail={recruiterEmail}
