@@ -108,7 +108,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           style={{
             width: '100%',
             padding: '13px 20px',
-            background: 'var(--accent-slate, #0F172A)',
+            background: 'var(--accent-slate)',
             color: '#FFFFFF',
             border: '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: '10px',
@@ -120,17 +120,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             justifyContent: 'center',
             gap: '8px',
             transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-            boxShadow: '0 2px 6px rgba(15, 23, 42, 0.18)',
+            boxShadow: '0 2px 6px rgba(29, 78, 216, 0.22)',
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.background = 'var(--accent-slate-hover, #1E293B)';
+            e.currentTarget.style.background = 'var(--accent-slate-hover)';
             e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 4px 14px rgba(15, 23, 42, 0.25)';
+            e.currentTarget.style.boxShadow = '0 4px 14px rgba(29, 78, 216, 0.32)';
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.background = 'var(--accent-slate, #0F172A)';
+            e.currentTarget.style.background = 'var(--accent-slate)';
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 2px 6px rgba(15, 23, 42, 0.18)';
+            e.currentTarget.style.boxShadow = '0 2px 6px rgba(29, 78, 216, 0.22)';
           }}
         >
           <span>Continue to Secure Login</span>

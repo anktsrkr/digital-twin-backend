@@ -13,7 +13,8 @@ import {
   Zap,
   Bot,
   Building2,
-  Calendar
+  Calendar,
+  User
 } from 'lucide-react';
 import { 
   useAgent,
@@ -68,7 +69,7 @@ const QUICK_PROMPTS: QuickPromptItem[] = [
     tag: "Cloud Native"
   },
   {
-    icon: <Calendar size={15} color="#0F172A" />,
+    icon: <Calendar size={15} color="#1D4ED8" />,
     title: "Interview Availability",
     prompt: "When is Ankit available for an interview or technical screening call?",
     tag: "Live Scheduling"
@@ -1119,17 +1120,91 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
                 return null;
               }
 
+              const session = getSavedRecruiterSession();
+              const company = session?.company || (typeof window !== 'undefined' ? localStorage.getItem('recruiter_company') : undefined);
+              const userTag = company ? `${company} Recruiter` : (isAuthenticated ? 'Verified Recruiter' : 'Guest Recruiter');
+
               return (
                 <div key={`${msg.id || 'msg'}-${index}`} style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: isUser ? 'flex-end' : 'flex-start',
+                  alignItems: 'flex-start',
                   maxWidth: '100%',
-                  gap: '0.55rem'
+                  gap: '0.45rem',
+                  marginTop: isUser ? '0.35rem' : '0.65rem'
                 }}>
+                  {/* Recruiter Persona Header */}
+                  {isUser && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      marginBottom: '0.1rem',
+                      userSelect: 'none'
+                    }}>
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '6px',
+                        background: 'var(--bg-surface-subtle)',
+                        border: '1px solid var(--border-hairline)',
+                        color: 'var(--text-secondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: 'var(--shadow-xs)'
+                      }}>
+                        <User size={13} color="var(--text-secondary)" />
+                      </div>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                        You
+                      </span>
+                      <span className="badge-mono" style={{ fontSize: '0.6rem', padding: '0.05rem 0.35rem' }}>
+                        {userTag}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Assistant Persona Header */}
+                  {!isUser && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      marginBottom: '0.1rem',
+                      userSelect: 'none'
+                    }}>
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '6px',
+                        background: 'var(--accent-slate)',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        fontFamily: 'var(--font-mono)',
+                        letterSpacing: '-0.02em',
+                        boxShadow: 'var(--shadow-xs)'
+                      }}>
+                        AS
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                          Ankit Sarkar
+                        </span>
+                        <span className="badge-mono" style={{ fontSize: '0.6rem', padding: '0.05rem 0.35rem' }}>
+                          Digital Twin
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Render Generative UI Tool Calls BEFORE or alongside message */}
                   {hasToolCalls && (
-                    <div style={{ width: '100%', maxWidth: '98%' }}>
+                    <div style={{ width: '100%', maxWidth: '100%' }}>
                       {toolCalls.map((tc: any) => {
                         const toolMessage = agent.messages.find(
                           (m: any) => m.role === 'tool' && (m.toolCallId === tc.id || m.id === tc.id)
@@ -1146,21 +1221,22 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
                   {/* Standard Text Bubble */}
                   {hasText && (
                     <div style={{
-                      maxWidth: isUser ? '82%' : '100%',
-                      padding: isUser ? '0.65rem 1rem' : '0.2rem 0',
-                      borderRadius: isUser ? '14px 14px 3px 14px' : '0',
+                      maxWidth: '100%',
+                      width: isUser ? 'auto' : '100%',
+                      padding: isUser ? '0.65rem 0.95rem' : '0.1rem 0 0.2rem',
+                      borderRadius: isUser ? 'var(--radius-md)' : '0',
                       background: isUser
-                        ? 'var(--user-bubble-bg)'
+                        ? 'var(--bg-surface-subtle)'
                         : 'transparent',
-                      border: isUser ? '1px solid var(--user-bubble-border)' : 'none',
-                      color: isUser ? 'var(--user-bubble-text)' : 'var(--text-primary)',
+                      border: isUser ? '1px solid var(--border-hairline)' : 'none',
+                      color: 'var(--text-primary)',
                       fontSize: '0.9rem',
                       lineHeight: 1.62,
-                      boxShadow: isUser ? '0 1px 3px rgba(0, 0, 0, 0.12)' : 'none',
+                      boxShadow: isUser ? 'var(--shadow-xs)' : 'none',
                       wordBreak: 'break-word'
                     }}>
                       {isUser ? (
-                        <span style={{ fontWeight: 450 }}>{textContent}</span>
+                        <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{textContent}</span>
                       ) : (
                         <div className="markdown-content">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -1176,7 +1252,23 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
 
             {/* Editorial Telemetry Processing Indicator */}
             {agent.isRunning && (
-              <div className="telemetry-strip message-enter" style={{ alignSelf: 'flex-start' }}>
+              <div className="telemetry-strip message-enter" style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '5px',
+                  background: 'var(--accent-slate)',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  flexShrink: 0
+                }}>
+                  AS
+                </div>
                 <div className="telemetry-spinner" />
                 <div className="telemetry-text">
                   <span>Ankit's Digital Twin is synthesizing response...</span>

@@ -8,14 +8,14 @@
   --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
 
   /* CopilotKit Core Variable Mapping */
-  --primary: #0F172A;
+  --primary: #1D4ED8;
   --primary-foreground: #FFFFFF;
   --background: #FFFFFF;
   --foreground: #09090B;
   --muted: #F8F9FA;
   --muted-foreground: #6B7280;
   --border: #E5E7EB;
-  --ring: #0F172A;
+  --ring: #2563EB;
   --radius: 12px;
 
   /* Executive Architectural Color Tokens */
@@ -36,17 +36,17 @@
   --border-hairline: #E5E7EB;
   --border-subtle: #D1D5DB;
   --border-medium: #9CA3AF;
-  --border-focus: #0F172A;
+  --border-focus: #2563EB;
 
-  /* User Message Obsidian Capsule */
-  --user-bubble-bg: #18181B;
-  --user-bubble-border: #27272A;
-  --user-bubble-text: #F8FAFC;
+  /* User Message Azure Capsule (Brighter, Calm Royal Azure) */
+  --user-bubble-bg: #1D4ED8;
+  --user-bubble-border: #1E40AF;
+  --user-bubble-text: #FFFFFF;
 
   /* Executive Accents */
-  --accent-slate: #0F172A;
-  --accent-slate-hover: #1E293B;
-  --accent-cobalt: #1D4ED8;
+  --accent-slate: #1D4ED8;
+  --accent-slate-hover: #1E40AF;
+  --accent-cobalt: #2563EB;
   --accent-cobalt-subtle: #EFF6FF;
   --accent-cobalt-border: #BFDBFE;
   --accent-emerald: #059669;
