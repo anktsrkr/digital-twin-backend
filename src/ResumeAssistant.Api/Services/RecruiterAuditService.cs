@@ -20,14 +20,14 @@ public sealed class RecruiterAuditService
         string query,
         string response,
         List<CitationDto> citations,
-        Guid? recruiterId = null,
+        string? recruiterId = null,
         int tokensUsed = 0,
         CancellationToken ct = default)
     {
         _logger.LogInformation("Recruiter query logged [{SessionId}]: '{Query}' (Citations: {Count})",
             sessionId, query, citations.Count);
 
-        if (_dataSource is null || recruiterId is null)
+        if (_dataSource is null || string.IsNullOrWhiteSpace(recruiterId))
         {
             return;
         }
@@ -46,7 +46,7 @@ public sealed class RecruiterAuditService
                 WHERE id = @recruiter_id;";
 
             await using var cmd = new NpgsqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("recruiter_id", recruiterId.Value);
+            cmd.Parameters.AddWithValue("recruiter_id", recruiterId);
             cmd.Parameters.AddWithValue("session_id", sessionId);
             cmd.Parameters.AddWithValue("query", query);
             cmd.Parameters.AddWithValue("response", response);

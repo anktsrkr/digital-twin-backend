@@ -210,3 +210,58 @@ public sealed class CloudSupabaseOptions
     public string? AnonKey { get; set; } = "your-anon-key";
     public string? ConnectionString { get; set; } = "Host=aws-0-us-east-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.your-ref;Password=your-password;SSL Mode=Require;Trust Server Certificate=true";
 }
+
+public sealed class LogtoOptions
+{
+    public const string SectionName = "Logto";
+
+    /// <summary>
+    /// Operating mode: "Local" (Docker Compose Logto / Inbucket) or "Cloud" (Logto Cloud tenant).
+    /// </summary>
+    public string Mode { get; set; } = "Cloud";
+
+    public LocalLogtoOptions Local { get; set; } = new();
+    public CloudLogtoOptions Cloud { get; set; } = new();
+
+    public bool IsLocal => string.Equals(Mode, "Local", StringComparison.OrdinalIgnoreCase);
+    public bool IsCloud => string.Equals(Mode, "Cloud", StringComparison.OrdinalIgnoreCase);
+
+    public string GetResolvedEndpoint() => IsCloud ? Cloud.Endpoint : Local.Endpoint;
+    public string GetResolvedAppId() => IsCloud ? Cloud.AppId : Local.AppId;
+    public string GetResolvedM2MAppId() => IsCloud ? Cloud.M2MAppId : Local.M2MAppId;
+    public string GetResolvedM2MSecret() => IsCloud ? Cloud.M2MAppSecret : Local.M2MAppSecret;
+    public string GetResolvedApiResource() => IsCloud ? Cloud.ApiResource : Local.ApiResource;
+    public string GetResolvedMagicLinkBaseUrl() => IsCloud ? Cloud.MagicLinkBaseUrl : Local.MagicLinkBaseUrl;
+    public string? GetResolvedWebhookSecret() => IsCloud ? Cloud.WebhookSecret : Local.WebhookSecret;
+    public string GetResolvedManagementApiResource() => $"{GetResolvedEndpoint().TrimEnd('/')}/api";
+}
+
+public sealed class LocalLogtoOptions
+{
+    public string Endpoint { get; set; } = "http://localhost:3001";
+    public string AppId { get; set; } = "local_spa_app_id";
+    public string M2MAppId { get; set; } = "local_m2m_app_id";
+    public string M2MAppSecret { get; set; } = "local_m2m_app_secret";
+    public string ApiResource { get; set; } = "https://api.resumetwin.local";
+    public string MagicLinkBaseUrl { get; set; } = "http://localhost:5173";
+    public string? WebhookSecret { get; set; }
+    public string SmtpHost { get; set; } = "localhost";
+    public int SmtpPort { get; set; } = 2500;
+}
+
+public sealed class CloudLogtoOptions
+{
+    public string Endpoint { get; set; } = "https://tenant.logto.app";
+    public string AppId { get; set; } = "YOUR_LOGTO_SPA_APP_ID";
+    public string M2MAppId { get; set; } = "YOUR_LOGTO_M2M_APP_ID";
+    public string M2MAppSecret { get; set; } = "YOUR_LOGTO_M2M_SECRET";
+    public string ApiResource { get; set; } = "https://api.resumetwin.local";
+    public string MagicLinkBaseUrl { get; set; } = "http://localhost:5173";
+    public string? WebhookSecret { get; set; }
+
+    public bool IsM2MConfigured =>
+        !string.IsNullOrWhiteSpace(M2MAppId) &&
+        !M2MAppId.StartsWith("YOUR_") &&
+        !string.IsNullOrWhiteSpace(M2MAppSecret) &&
+        !M2MAppSecret.StartsWith("YOUR_");
+}

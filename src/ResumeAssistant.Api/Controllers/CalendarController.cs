@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ResumeAssistant.Api.Services;
 
 namespace ResumeAssistant.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class CalendarController(ICalComService calComService, ILogger<CalendarController> logger) : ControllerBase

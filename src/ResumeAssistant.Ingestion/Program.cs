@@ -200,13 +200,40 @@ public class Program
             return;
         }
 
-        Console.WriteLine("💾 Writing chunks with vector embeddings to Supabase `resume_chunks` table...");
+        Console.WriteLine("💾 Connecting to Supabase database...");
 
-        // Initialize Npgsql DataSource with pgvector mapping
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.UseVector();
         await using var dataSource = dataSourceBuilder.Build();
         await using var conn = await dataSource.OpenConnectionAsync();
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"   ✓ Successfully connected to Supabase PostgreSQL database via [{new NpgsqlConnectionStringBuilder(connectionString).Host}]!\n");
+        Console.ResetColor();
+
+        // Ensure schema and tables exist before seeding
+        string[] searchPaths = [
+            Path.Combine(Directory.GetCurrentDirectory(), "database", "supabase_cloud_migration.sql"),
+            Path.Combine(AppContext.BaseDirectory, "database", "supabase_cloud_migration.sql"),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "database", "supabase_cloud_migration.sql")
+        ];
+
+        string? migrationPath = searchPaths.FirstOrDefault(File.Exists);
+        if (migrationPath is not null)
+        {
+            Console.WriteLine("📜 Provisioning database schema, pgvector extension & RPC functions...");
+            try
+            {
+                var migrationSql = await File.ReadAllTextAsync(migrationPath);
+                await using var schemaCmd = new NpgsqlCommand(migrationSql, conn);
+                await schemaCmd.ExecuteNonQueryAsync();
+                Console.WriteLine("   ✓ Database schema, pgvector extension, and vector search RPC functions are verified and ready!\n");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"   ⚠️ Note during schema provision: {ex.Message}");
+            }
+        }
 
         // Clean reseed: remove previous chunks so re-runs don't create stale duplicate vectors
         await using (var truncateCmd = new NpgsqlCommand("TRUNCATE TABLE public.resume_chunks;", conn))
@@ -219,14 +246,15 @@ public class Program
             INSERT INTO public.resume_chunks 
             (title, category, company, role, start_date, end_date, content, source_name, source_link, technologies, embedding, updated_at)
             VALUES 
-            (@title, @category, @company, @role, @start_date, @end_date, @content, @source_name, @source_link, @technologies, @embedding, NOW())";
+            (@title, @category, @company, @role, @start_date, @end_date, @content, @source_name, @source_link, @technologies, @embedding::vector, NOW())";
 
         int successCount = 0;
         foreach (var chunk in chunks)
         {
             string contextText = chunk.ToContextString();
             var embeddings = await embeddingGenerator.GenerateAsync([contextText]);
-            var embeddingVector = embeddings[0].Vector;
+            var embeddingVector = embeddings[0].Vector.ToArray();
+            string vectorString = $"[{string.Join(",", embeddingVector.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture)))}]";
 
             await using var cmd = new NpgsqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("title", chunk.Title);
@@ -239,7 +267,7 @@ public class Program
             cmd.Parameters.AddWithValue("source_name", chunk.SourceName);
             cmd.Parameters.AddWithValue("source_link", (object?)chunk.SourceLink ?? DBNull.Value);
             cmd.Parameters.AddWithValue("technologies", chunk.Technologies);
-            cmd.Parameters.AddWithValue("embedding", new Vector(embeddingVector.ToArray()));
+            cmd.Parameters.AddWithValue("embedding", vectorString);
 
             await cmd.ExecuteNonQueryAsync();
             successCount++;

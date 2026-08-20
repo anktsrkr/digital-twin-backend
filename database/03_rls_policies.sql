@@ -4,12 +4,12 @@
 -- Row-Level Security (RLS) Policies
 -- ==============================================================================
 
--- Mock auth.uid() function if running in standalone PostgreSQL outside Supabase
+-- Mock auth.uid() function to extract Logto / JWT sub claim
 create or replace function auth.uid()
-returns uuid
+returns text
 language sql stable
 as $$
-    select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+    select nullif(current_setting('request.jwt.claim.sub', true), '');
 $$;
 
 -- 1. Enable RLS on all tables
@@ -52,42 +52,3 @@ create policy "Allow read on disposable email domains"
 on public.disposable_email_domains for select
 using (true);
 
--- 6. Trigger to automatically create a recruiter_profile on auth.users sign-up
-create or replace function public.handle_new_recruiter()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
-declare
-    user_email text;
-    email_domain text;
-    inferred_co text;
-begin
-    user_email := new.email;
-    email_domain := split_part(user_email, '@', 2);
-    
-    -- Infer company name from domain if not generic (e.g. google.com -> Google)
-    if email_domain not in ('gmail.com', 'outlook.com', 'yahoo.com', 'hotmail.com', 'icloud.com', 'proton.me', 'protonmail.com') then
-        inferred_co := initcap(split_part(email_domain, '.', 1));
-    else
-        inferred_co := null;
-    end if;
-
-    insert into public.recruiter_profiles (id, email, domain, company_inferred, first_login_at, last_active_at)
-    values (new.id, user_email, email_domain, inferred_co, now(), now())
-    on conflict (id) do update 
-    set last_active_at = now();
-
-    return new;
-end;
-$$;
-
--- Attach trigger if auth.users table exists
-do $$ begin
-    if exists (select 1 from information_schema.tables where table_schema = 'auth' and table_name = 'users') then
-        drop trigger if exists on_auth_user_created on auth.users;
-        create trigger on_auth_user_created
-            after insert on auth.users
-            for each row execute function public.handle_new_recruiter();
-    end if;
-end $$;

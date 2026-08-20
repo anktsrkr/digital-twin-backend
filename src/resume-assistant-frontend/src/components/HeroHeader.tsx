@@ -110,31 +110,20 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
           </a>
 
           {isAuthenticated ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              background: 'var(--accent-emerald-subtle)',
-              border: '1px solid var(--accent-emerald-border)',
-              padding: '0.3rem 0.65rem',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.75rem'
-            }}>
-              <ShieldCheck size={13} color="var(--accent-emerald)" />
-              <span style={{ fontWeight: 600, color: '#065F46' }}>
-                {recruiterCompany ? `${recruiterCompany} Recruiter` : recruiterEmail}
+            <div 
+              className="recruiter-badge-pill" 
+              title={`Authenticated as ${recruiterEmail || recruiterCompany || 'Verified Recruiter'}`}
+            >
+              <ShieldCheck size={13} className="recruiter-badge-icon" />
+              <span className="recruiter-badge-name">
+                {recruiterCompany ? `${recruiterCompany} Recruiter` : (recruiterEmail ? `${recruiterEmail.split('@')[0]} (Verified)` : 'Verified Recruiter')}
               </span>
+              <span className="recruiter-badge-divider" />
               <button 
+                type="button"
                 onClick={onSignOut}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  fontSize: '0.7rem',
-                  textDecoration: 'underline',
-                  marginLeft: '0.2rem'
-                }}
+                className="recruiter-badge-signout"
+                title="Sign out of recruiter session"
               >
                 Sign Out
               </button>

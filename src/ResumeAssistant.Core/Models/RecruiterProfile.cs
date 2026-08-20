@@ -8,7 +8,7 @@ namespace ResumeAssistant.Core.Models;
 public sealed class RecruiterProfile
 {
     [JsonPropertyName("id")]
-    public Guid Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     [JsonPropertyName("email")]
     public required string Email { get; set; }
@@ -38,7 +38,7 @@ public sealed class RecruiterConversation
     public Guid Id { get; set; } = Guid.NewGuid();
 
     [JsonPropertyName("recruiter_id")]
-    public Guid RecruiterId { get; set; }
+    public string? RecruiterId { get; set; }
 
     [JsonPropertyName("session_id")]
     public required string SessionId { get; set; }

@@ -28,13 +28,13 @@ An interactive, real-time AI "Digital Twin" of your professional resume. Instead
  │  • Persona Prompt Engine (First-person "Digital Twin", strict anti-hallucination)    │
  └───────┬───────────────────────┬───────────────────────┬──────────────────────────────┘
          │                       │                       │
-         │ Voyage AI RAG         │ LLM Chat Stream       │ OTLP Telemetry (Local/Cloud)
+         │ Voyage/Jina RAG       │ LLM Chat Stream       │ OTLP Telemetry (Local/Cloud)
          ▼                       ▼                       ▼
  ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────────────────┐
- │ Supabase (Dual-Mode) │  │ Local LLM (LM Studio)│  │ Observability (Dual-Mode)        │
- │  • Mode: Local/Cloud │  │  • Model: lfm2.5-2.6b│  │  • Local: Grafana LGTM (port 3000│
- │  • pgvector:pg17     │  │  • Port 1234 (/v1)   │  │  • Inbucket Email (port 9000)    │
- │  • GoTrue Auth (9999)│  │  • Cloudflare AI     │  │  • Cloud: Grafana Cloud Free     │
+ │ PostgreSQL (pgvector)│  │ Local LLM (LM Studio)│  │ Observability (Dual-Mode)        │
+ │  • pgvector:pg17     │  │  • Model: lfm2.5-2.6b│  │  • Local: Grafana LGTM (port 3000│
+ │  • Logto Auth (3001) │  │  • Port 1234 (/v1)   │  │  • Inbucket Email (port 9000)    │
+ │  • Passwordless OTT  │  │  • Cloudflare AI     │  │  • Cloud: Grafana Cloud Free     │
  └──────────────────────┘  └──────────────────────┘  └──────────────────────────────────┘
 ```
 
@@ -57,24 +57,35 @@ In `src/ResumeAssistant.Api/appsettings.json`:
       "ApiToken": "YOUR_GRAFANA_API_TOKEN"
     }
   },
-  "Supabase": {
-    "Mode": "Local", // "Local" (Docker Compose pgvector + GoTrue) or "Cloud" (Hosted Supabase Project)
+  "Logto": {
+    "Mode": "Cloud", // "Local" (Docker Compose Logto / Inbucket) or "Cloud" (Logto Cloud tenant)
     "Local": {
-      "Url": "http://localhost:9999",
-      "AnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.local-anon-token",
+      "Endpoint": "http://localhost:3001",
+      "AppId": "local_spa_app_id",
+      "M2MAppId": "local_m2m_app_id",
+      "M2MAppSecret": "local_m2m_app_secret",
+      "ApiResource": "https://api.resumetwin.local",
+      "MagicLinkBaseUrl": "http://localhost:5173",
+      "SmtpHost": "localhost",
+      "SmtpPort": 2500
+    },
+    "Cloud": {
+      "Endpoint": "https://tenant.logto.app",
+      "AppId": "YOUR_LOGTO_SPA_APP_ID",
+      "M2MAppId": "YOUR_LOGTO_M2M_APP_ID",
+      "M2MAppSecret": "YOUR_LOGTO_M2M_SECRET",
+      "ApiResource": "https://api.resumetwin.local",
+      "MagicLinkBaseUrl": "http://localhost:5173"
+    }
+  },
+  "Supabase": {
+    "Mode": "Cloud", // "Local" (Docker Compose pgvector) or "Cloud" (Hosted PostgreSQL Project)
+    "Local": {
       "ConnectionString": "Host=localhost;Port=5432;Database=resume_assistant;Username=postgres;Password=postgres;SSL Mode=Disable;Trust Server Certificate=true"
     },
     "Cloud": {
-      "Url": "https://your-project.supabase.co",
-      "AnonKey": "your-cloud-anon-key",
-      "ConnectionString": "Host=aws-0-us-east-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.your-ref;Password=your-password;SSL Mode=Require;Trust Server Certificate=true"
+      "ConnectionString": "Host=aws-1-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.your-ref;Password=your-password;SSL Mode=Require;Trust Server Certificate=true"
     }
-  },
-  "LocalLLM": {
-    "Enabled": true,
-    "Endpoint": "http://localhost:1234/v1",
-    "Model": "lfm2.5-2.6b",
-    "ApiKey": "lm-studio"
   }
 }
 ```
@@ -88,7 +99,7 @@ All four infrastructure components run locally with **1 single command**:
 | Container | Service | Local Port | Functionality |
 | :--- | :--- | :--- | :--- |
 | **`resume-postgres-vector`** | PostgreSQL 17 + `pgvector` | `5432` | Stores 1024-dim resume embeddings with HNSW cosine search & recruiter tables. |
-| **`resume-supabase-auth`** | Supabase GoTrue Auth | `9999` | Handles passwordless recruiter Magic Links, OTPs, and JWT token issuance. |
+| **`resume-logto-auth`** | Logto Identity Service | `3001` / `3002` | Handles passwordless recruiter Magic Links, one-time tokens, OIDC & JWT issuance. |
 | **`resume-inbucket`** | Inbucket Email Testing UI | `9000` | Catches local Magic Link emails in the browser so you can log in without real SMTP. |
 | **`resume-grafana-lgtm`** | Grafana LGTM OpenTelemetry | `3000` | Live traces (Tempo), logs (Loki), metrics (Mimir/Prometheus), and OTLP ingestion. |
 
@@ -124,5 +135,5 @@ npm run dev
 - 💬 **Digital Twin Chat UI**: [`http://localhost:5173`](http://localhost:5173) (or `5174`)
 - ✉️ **Inbucket Email Inbox (View Magic Links)**: [`http://localhost:9000`](http://localhost:9000)
 - 📊 **Grafana Observability Dashboard**: [`http://localhost:3000`](http://localhost:3000) *(User: `admin` / Password: `admin`)*
-- 🔑 **Supabase GoTrue Auth API**: [`http://localhost:9999`](http://localhost:9999)
+- 🔑 **Logto Auth Admin Console**: [`http://localhost:3001`](http://localhost:3001)
 - 🐘 **PostgreSQL 17 Vector DB**: `postgresql://postgres:postgres@localhost:5432/resume_assistant`

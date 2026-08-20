@@ -28,12 +28,14 @@ import type { CitationDetail } from './CitationDrawer';
 import { ScheduleMeetingCard, DownloadResumeCard } from './ActionCards';
 import { LiveSlotPicker } from './LiveSlotPicker';
 import { FollowUpPills, type FollowUpPillItem } from './FollowUpPills';
+import { getSavedRecruiterSession } from '../lib/logtoClient';
 
 interface DigitalTwinChatProps {
   isAuthenticated: boolean;
   recruiterEmail?: string;
   onOpenAuth: () => void;
   onOpenCitation: (citation: CitationDetail) => void;
+  onBlockedEmail?: () => void;
   externalPrompt?: string | null;
   onClearExternalPrompt?: () => void;
   onAgentStateChange?: (isRunning: boolean) => void;
@@ -330,6 +332,7 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
   recruiterEmail,
   onOpenAuth,
   onOpenCitation,
+  onBlockedEmail,
   externalPrompt,
   onClearExternalPrompt,
   onAgentStateChange
@@ -772,8 +775,26 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
     setInput('');
     inputRef.current?.focus();
 
-    await copilotkit.runAgent({ agent });
-  }, [input, agent, copilotkit, isAuthenticated, recruiterEmail, onOpenAuth]);
+    try {
+      await copilotkit.runAgent({ agent });
+    } catch (err: any) {
+      const errStr = String(err?.message || err);
+      if (errStr.includes('401') || errStr.includes('403') || errStr.toLowerCase().includes('disposable')) {
+        onBlockedEmail?.();
+      }
+    }
+  }, [input, agent, copilotkit, isAuthenticated, recruiterEmail, onOpenAuth, onBlockedEmail]);
+
+  // Reactive agent error listener (catches 401 / 403 on /agentic_chat stream)
+  useEffect(() => {
+    const error = (agent as any).error;
+    if (error) {
+      const errStr = String(error?.message || error);
+      if (errStr.includes('401') || errStr.includes('403') || errStr.toLowerCase().includes('disposable')) {
+        onBlockedEmail?.();
+      }
+    }
+  }, [(agent as any).error, onBlockedEmail]);
 
   // Stop agent handler
   const stopAgent = useCallback(() => {
@@ -827,9 +848,15 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
               };
             });
 
+          const session = getSavedRecruiterSession();
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (session?.token) {
+            headers['Authorization'] = `Bearer ${session.token}`;
+          }
+
           const res = await fetch(`${backendUrl}/api/followup/suggestions`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ messages: payloadMessages })
           });
 

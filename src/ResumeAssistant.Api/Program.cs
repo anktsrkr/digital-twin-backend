@@ -1,5 +1,8 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using AGUI.Samples.Shared;
 using AGUI.Server;
 using Microsoft.Extensions.AI;
@@ -28,6 +31,7 @@ var embeddingOptions = builder.Configuration.GetSection(EmbeddingOptions.Section
 var jinaOptions = builder.Configuration.GetSection(JinaAiOptions.SectionName).Get<JinaAiOptions>() ?? new JinaAiOptions();
 var voyageOptions = builder.Configuration.GetSection(VoyageAiOptions.SectionName).Get<VoyageAiOptions>() ?? new VoyageAiOptions();
 var supabaseOptions = builder.Configuration.GetSection(SupabaseOptions.SectionName).Get<SupabaseOptions>() ?? new SupabaseOptions();
+var logtoOptions = builder.Configuration.GetSection(LogtoOptions.SectionName).Get<LogtoOptions>() ?? new LogtoOptions();
 var calComOptions = builder.Configuration.GetSection(CalComOptions.SectionName).Get<CalComOptions>() ?? new CalComOptions();
 
 // Allow overriding via environment variables
@@ -59,6 +63,15 @@ if (builder.Configuration["SUPABASE_URL"] is { } sUrl) { if (supabaseOptions.IsC
 if (builder.Configuration["SUPABASE_ANON_KEY"] is { } sKey) { if (supabaseOptions.IsCloud) supabaseOptions.Cloud.AnonKey = sKey; else supabaseOptions.Local.AnonKey = sKey; }
 if (builder.Configuration["SUPABASE_DB_CONNECTION_STRING"] is { } sConn) { if (supabaseOptions.IsCloud) supabaseOptions.Cloud.ConnectionString = sConn; else supabaseOptions.Local.ConnectionString = sConn; }
 
+if (builder.Configuration["LOGTO_MODE"] is { } lgMode) logtoOptions.Mode = lgMode;
+if (builder.Configuration["LOGTO_ENDPOINT"] is { } lgEndpoint) { if (logtoOptions.IsCloud) logtoOptions.Cloud.Endpoint = lgEndpoint; else logtoOptions.Local.Endpoint = lgEndpoint; }
+if (builder.Configuration["LOGTO_APP_ID"] is { } lgAppId) { if (logtoOptions.IsCloud) logtoOptions.Cloud.AppId = lgAppId; else logtoOptions.Local.AppId = lgAppId; }
+if (builder.Configuration["LOGTO_M2M_APP_ID"] is { } lgM2mId) { if (logtoOptions.IsCloud) logtoOptions.Cloud.M2MAppId = lgM2mId; else logtoOptions.Local.M2MAppId = lgM2mId; }
+if (builder.Configuration["LOGTO_M2M_SECRET"] is { } lgM2mSec) { if (logtoOptions.IsCloud) logtoOptions.Cloud.M2MAppSecret = lgM2mSec; else logtoOptions.Local.M2MAppSecret = lgM2mSec; }
+if (builder.Configuration["LOGTO_API_RESOURCE"] is { } lgRes) { if (logtoOptions.IsCloud) logtoOptions.Cloud.ApiResource = lgRes; else logtoOptions.Local.ApiResource = lgRes; }
+if (builder.Configuration["LOGTO_MAGIC_LINK_BASE_URL"] is { } lgMagicUrl) { if (logtoOptions.IsCloud) logtoOptions.Cloud.MagicLinkBaseUrl = lgMagicUrl; else logtoOptions.Local.MagicLinkBaseUrl = lgMagicUrl; }
+if (builder.Configuration["LOGTO_WEBHOOK_SECRET"] is { } lgWebhookSec) { if (logtoOptions.IsCloud) logtoOptions.Cloud.WebhookSecret = lgWebhookSec; else logtoOptions.Local.WebhookSecret = lgWebhookSec; }
+
 if (builder.Configuration["CALCOM_API_KEY"] is { } calApiKey) calComOptions.ApiKey = calApiKey;
 if (builder.Configuration["CALCOM_EVENT_TYPE_ID"] is { } calEventId && int.TryParse(calEventId, out var parsedEventId)) calComOptions.EventTypeId = parsedEventId;
 if (builder.Configuration["CALCOM_USERNAME"] is { } calUsername) calComOptions.Username = calUsername;
@@ -71,8 +84,10 @@ builder.Services.AddSingleton(embeddingOptions);
 builder.Services.AddSingleton(jinaOptions);
 builder.Services.AddSingleton(voyageOptions);
 builder.Services.AddSingleton(supabaseOptions);
+builder.Services.AddSingleton(logtoOptions);
 builder.Services.AddSingleton(calComOptions);
 builder.Services.AddSingleton<IFollowUpAgent, FollowUpAgent>();
+builder.Services.AddHttpClient();
 
 // 2. Configure OpenTelemetry (Local Docker vs Cloud Mode)
 var resourceBuilder = ResourceBuilder.CreateDefault()
@@ -164,6 +179,55 @@ if (!telemetryOptions.IsDisabled && !string.IsNullOrWhiteSpace(targetOtlpBase))
 
 // 3. Add Core Services & AG-UI
 builder.Services.AddControllers();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Validates RS256 JWTs directly against Logto's OpenID Discovery & JWKS endpoint
+        options.Authority = $"{logtoOptions.GetResolvedEndpoint().TrimEnd('/')}/oidc";
+        options.Audience = logtoOptions.GetResolvedApiResource();
+        options.RequireHttpsMetadata = logtoOptions.IsCloud; // Local Logto might be HTTP
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = $"{logtoOptions.GetResolvedEndpoint().TrimEnd('/')}/oidc",
+            ValidateAudience = true,
+            ValidAudience = logtoOptions.GetResolvedApiResource(),
+            ValidateLifetime = true
+        };
+
+        // Allow token to be passed via query string for WebSocket/SignalR connections
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/agentic_chat"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                var validator = context.HttpContext.RequestServices.GetRequiredService<IDisposableEmailValidator>();
+                var email = context.Principal?.FindFirst("email")?.Value ??
+                            context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                if (!string.IsNullOrEmpty(email))
+                {
+                    var result = validator.ValidateEmail(email);
+                    if (result.IsDisposable)
+                    {
+                        context.HttpContext.Response.Headers["X-Blocked-Reason"] = "DisposableEmail";
+                        context.Fail("Disposable email addresses are not permitted.");
+                    }
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
+builder.Services.AddAuthorization();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.TypeInfoResolverChain.Add(DigitalTwinJsonSerializerContext.Default);
@@ -171,6 +235,10 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 builder.Services.AddAGUI();
 builder.Services.AddSingleton<IDisposableEmailValidator, DisposableEmailValidator>();
+builder.Services.AddHttpClient<ILogtoManagementService, LogtoManagementService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 
 // 4. Configure CORS
 builder.Services.AddCors(options =>
@@ -185,6 +253,7 @@ builder.Services.AddCors(options =>
             origin.EndsWith(".outplane.app", StringComparison.OrdinalIgnoreCase))
             .AllowAnyMethod()
             .AllowAnyHeader()
+            .WithExposedHeaders("X-Blocked-Reason")
             .AllowCredentials();
     });
 });
@@ -276,12 +345,20 @@ var app = builder.Build();
 
 app.UseCors("AllowFrontend");
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 // Health check endpoint
 app.MapGet("/api/health", () => Results.Ok(new
 {
     status = "healthy",
     runtime = ".NET 10",
     service = "ResumeAssistant.Api",
+    authProvider = "Logto Magic Link (Passwordless One-Time Token)",
+    logtoMode = logtoOptions.Mode,
+    logtoEndpoint = logtoOptions.GetResolvedEndpoint(),
+    logtoAppId = logtoOptions.GetResolvedAppId(),
+    logtoM2MConfigured = logtoOptions.IsCloud ? logtoOptions.Cloud.IsM2MConfigured : true,
     llmMode = llmOptions.Mode,
     llmProvider = llmOptions.IsLocal ? $"LM Studio ({llmOptions.Local.Model})" : $"Cloudflare Workers AI ({llmOptions.Cloud.Model})",
     llmEndpoint = llmOptions.IsLocal ? llmOptions.Local.Endpoint : llmOptions.Cloud.GetResolvedBaseUrl(),
@@ -368,7 +445,7 @@ app.Use(async (context, next) =>
         {
             try
             {
-                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                using var doc = JsonDocument.Parse(body);
                 var root = doc.RootElement;
                 if (root.TryGetProperty("method", out var methodProp))
                 {
@@ -410,13 +487,13 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.MapGet("/agentic_chat/info", () => Results.Ok(runtimeInfo));
-app.MapPost("/agentic_chat/info", () => Results.Ok(runtimeInfo));
-app.MapGet("/info", () => Results.Ok(runtimeInfo));
-app.MapPost("/info", () => Results.Ok(runtimeInfo));
+app.MapGet("/agentic_chat/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
+app.MapPost("/agentic_chat/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
+app.MapGet("/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
+app.MapPost("/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
 
-// Map the AG-UI agent streaming endpoint for React frontend
-app.MapAGUI("/agentic_chat");
+// Map the AG-UI agent streaming endpoint with native ASP.NET Core Authorization
+app.MapAGUI("/agentic_chat").RequireAuthorization();
 
 app.MapControllers();
 

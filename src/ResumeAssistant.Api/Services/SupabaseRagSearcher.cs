@@ -64,10 +64,12 @@ public sealed class SupabaseRagSearcher : IVoyageRagSearcher<ResumeChunk>
 
                 const string rpcSql = @"
                     SELECT id, title, category, company, role, start_date, end_date, content, source_name, source_link, technologies, similarity
-                    FROM public.match_resume_chunks(@query_embedding, @match_count);";
+                    FROM public.match_resume_chunks(@query_embedding::vector, @match_count);";
+
+                string vectorString = $"[{string.Join(",", queryVector.ToArray().Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture)))}]";
 
                 await using var cmd = new NpgsqlCommand(rpcSql, conn);
-                cmd.Parameters.AddWithValue("query_embedding", new Vector(queryVector.ToArray()));
+                cmd.Parameters.AddWithValue("query_embedding", vectorString);
                 cmd.Parameters.AddWithValue("match_count", 15);
 
                 await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);

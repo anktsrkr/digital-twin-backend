@@ -9,11 +9,9 @@ export default defineConfig({
     port: 5173,
     host: true,
     proxy: {
-      // Proxy Supabase Auth calls to local GoTrue container to eliminate CORS issues
-      '/auth/v1': {
-        target: 'http://localhost:9999',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/auth\/v1/, '')
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
       }
     }
   }

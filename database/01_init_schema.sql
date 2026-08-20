@@ -4,37 +4,6 @@
 -- Database schema, extensions, tables, vector index, and RPC match function
 -- ==============================================================================
 
--- 0. Ensure auth schema and GoTrue enums exist for Supabase GoTrue Auth service
-create schema if not exists auth;
-
--- Set default search path so GoTrue queries finds tables in auth schema
-alter database resume_assistant set search_path to auth, public;
-alter role postgres set search_path to auth, public;
-
-do $$ begin
-    create type auth.factor_type as enum ('totp', 'webauthn', 'phone');
-exception
-    when duplicate_object then null;
-end $$;
-
-do $$ begin
-    create type auth.factor_status as enum ('unverified', 'verified');
-exception
-    when duplicate_object then null;
-end $$;
-
-do $$ begin
-    create type auth.aal_level as enum ('aal1', 'aal2', 'aal3');
-exception
-    when duplicate_object then null;
-end $$;
-
-do $$ begin
-    create type auth.code_challenge_method as enum ('s256', 'plain');
-exception
-    when duplicate_object then null;
-end $$;
-
 -- 1. Enable the pgvector extension for dense vector similarity operations
 create extension if not exists vector;
 
@@ -112,9 +81,9 @@ begin
 end;
 $$;
 
--- 6. Recruiter Profiles Table (Lead capture and session tracking)
+-- 6. Recruiter Profiles Table (Lead capture and session tracking with Logto user IDs)
 create table if not exists public.recruiter_profiles (
-    id uuid primary key default gen_random_uuid(),
+    id text primary key,
     email text not null unique,
     domain text not null,
     company_inferred text,
@@ -127,7 +96,7 @@ create table if not exists public.recruiter_profiles (
 -- 7. Recruiter Conversations Audit Log Table
 create table if not exists public.recruiter_conversations (
     id uuid primary key default gen_random_uuid(),
-    recruiter_id uuid references public.recruiter_profiles(id) on delete set null,
+    recruiter_id text references public.recruiter_profiles(id) on delete set null,
     session_id text not null,
     role text not null, -- 'user', 'assistant', 'system'
     content text not null,

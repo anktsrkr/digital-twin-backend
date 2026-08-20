@@ -19,10 +19,10 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Supabase Auth Service (GoTrue) - Handles Magic Links, OTPs & JWTs locally
-  supabase-auth:
-    image: supabase/gotrue:v2.158.1
-    container_name: resume-supabase-auth
+  # 2. Logto Auth Service - Handles Passwordless Magic Links, OIDC & JWTs
+  logto:
+    image: svhd/logto:latest
+    container_name: resume-logto-auth
     restart: unless-stopped
     depends_on:
       postgres-vector:
@@ -30,30 +30,14 @@ services:
       inbucket:
         condition: service_started
     ports:
-      - "9999:9999" # GoTrue Auth API (http://localhost:9999)
+      - "3001:3001" # Logto Admin Console (http://localhost:3001)
+      - "3002:3002" # Logto Core Service / OIDC Endpoints (http://localhost:3002)
     environment:
-      GOTRUE_API_HOST: 0.0.0.0
-      GOTRUE_API_PORT: 9999
-      API_EXTERNAL_URL: http://localhost:9999
-      GOTRUE_API_EXTERNAL_URL: http://localhost:9999
-      GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://postgres:postgres@postgres-vector:5432/resume_assistant?sslmode=disable&search_path=auth
-      GOTRUE_SITE_URL: http://localhost:5173
-      GOTRUE_URI_ALLOW_LIST: http://localhost:5173,http://localhost:5174
-      GOTRUE_DISABLE_SIGNUP: "false"
-      GOTRUE_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
-      GOTRUE_JWT_EXP: 3600
-      GOTRUE_SMTP_HOST: inbucket
-      GOTRUE_SMTP_PORT: 2500
-      GOTRUE_SMTP_USER: ""
-      GOTRUE_SMTP_PASS: ""
-      GOTRUE_SMTP_ADMIN_EMAIL: admin@resumetwin.local
-      GOTRUE_SMTP_MAX_FREQUENCY: 1s
-      GOTRUE_MAILER_AUTOCONFIRM: "false"
-      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /verify
-      GOTRUE_MAILER_URLPATHS_INVITE: /verify
-      GOTRUE_MAILER_URLPATHS_RECOVERY: /verify
-      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /verify
+      DB_URL: postgres://postgres:postgres@postgres-vector:5432/resume_assistant?sslmode=disable
+      ENDPOINT: http://localhost:3001
+      ADMIN_ENDPOINT: http://localhost:3002
+      TRUST_PROXY_HEADER: "true"
+
 
   # 3. Local Email Inbox (Inbucket) - Catch and view all Magic Link OTP emails
   inbucket:
