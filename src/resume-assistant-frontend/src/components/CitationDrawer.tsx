@@ -139,7 +139,7 @@ export const CitationDrawer: React.FC<CitationDrawerProps> = ({ isOpen, citation
           color: 'var(--text-secondary)'
         }}>
           <Database size={14} color="var(--accent-slate)" />
-          <span>Embedded via <strong>Voyage AI (1024-dim)</strong> and indexed in <strong>Supabase pgvector</strong>.</span>
+          <span>Embedded via <strong>Jina AI (1024-dim)</strong> and indexed in <strong>MongoDB</strong>.</span>
         </div>
       </div>
     </div>

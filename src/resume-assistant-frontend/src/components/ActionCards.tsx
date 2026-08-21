@@ -10,8 +10,8 @@ interface ScheduleMeetingCardProps {
 
 export const ScheduleMeetingCard: React.FC<ScheduleMeetingCardProps> = ({
   headline = 'Schedule a Call or Technical Screening with Ankit Sarkar',
-  bookingUrl = 'https://cal.com/anktsrkr',
-  durations = ['10 min catch-up', '15 min intro', '30 min screening', '45 min deep-dive', '60 min system design'],
+  bookingUrl = 'https://cal.com/ankitsarkar',
+  durations = ['15 min intro', '30 min screening', '60 min system design'],
   recommendedTopic = 'AI Solutions Architecture, Agentic Systems & Enterprise Cloud'
 }) => {
   return (
@@ -99,12 +99,16 @@ interface DownloadResumeCardProps {
 }
 
 export const DownloadResumeCard: React.FC<DownloadResumeCardProps> = ({
-  pdfUrl = '/resume.pdf',
+  pdfUrl,
   fileName = 'Ankit_Sarkar_AI_Solutions_Architect_Resume.pdf',
   githubUrl = 'https://github.com/anktsrkr',
   linkedinUrl = 'https://linkedin.com/in/sarkaran',
   blogUrl = 'https://anktsrkr.github.io'
 }) => {
+  const basePath = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+  const resolvedPdfUrl = !pdfUrl || pdfUrl === '/resume.pdf'
+    ? `${basePath}/resume.pdf`
+    : (pdfUrl.startsWith('/') && basePath && !pdfUrl.startsWith(basePath) ? `${basePath}${pdfUrl}` : pdfUrl);
   return (
     <div style={{
       marginTop: '0.75rem',
@@ -145,7 +149,7 @@ export const DownloadResumeCard: React.FC<DownloadResumeCardProps> = ({
 
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <a 
-          href={pdfUrl} 
+          href={resolvedPdfUrl} 
           download={fileName}
           className="btn-primary"
           style={{

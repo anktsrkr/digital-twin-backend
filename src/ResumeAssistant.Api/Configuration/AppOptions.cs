@@ -207,57 +207,38 @@ public sealed class CloudMongoDbOptions
     public string? ConnectionString { get; set; } = "mongodb+srv://<username>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority";
 }
 
-public sealed class LogtoOptions
+public sealed class ClerkOptions
 {
-    public const string SectionName = "Logto";
+    public const string SectionName = "Clerk";
 
     /// <summary>
-    /// Operating mode: "Local" (Docker Compose Logto / Inbucket) or "Cloud" (Logto Cloud tenant).
+    /// Clerk Frontend API / Issuer URL: e.g., https://<instance>.clerk.accounts.dev or custom domain.
     /// </summary>
-    public string Mode { get; set; } = "Cloud";
+    public string Issuer { get; set; } = "https://humble-finch-6302.clerk.accounts.dev";
 
-    public LocalLogtoOptions Local { get; set; } = new();
-    public CloudLogtoOptions Cloud { get; set; } = new();
+    /// <summary>
+    /// Clerk Publishable Key: pk_test_... or pk_live_...
+    /// </summary>
+    public string PublishableKey { get; set; } = "";
 
-    public bool IsLocal => string.Equals(Mode, "Local", StringComparison.OrdinalIgnoreCase);
-    public bool IsCloud => string.Equals(Mode, "Cloud", StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Clerk Backend Secret Key: sk_test_... or sk_live_...
+    /// </summary>
+    public string SecretKey { get; set; } = "";
 
-    public string GetResolvedEndpoint() => IsCloud ? Cloud.Endpoint : Local.Endpoint;
-    public string GetResolvedAppId() => IsCloud ? Cloud.AppId : Local.AppId;
-    public string GetResolvedM2MAppId() => IsCloud ? Cloud.M2MAppId : Local.M2MAppId;
-    public string GetResolvedM2MSecret() => IsCloud ? Cloud.M2MAppSecret : Local.M2MAppSecret;
-    public string GetResolvedApiResource() => IsCloud ? Cloud.ApiResource : Local.ApiResource;
-    public string GetResolvedMagicLinkBaseUrl() => IsCloud ? Cloud.MagicLinkBaseUrl : Local.MagicLinkBaseUrl;
-    public string? GetResolvedWebhookSecret() => IsCloud ? Cloud.WebhookSecret : Local.WebhookSecret;
-    public string GetResolvedManagementApiResource() => $"{GetResolvedEndpoint().TrimEnd('/')}/api";
-}
-
-public sealed class LocalLogtoOptions
-{
-    public string Endpoint { get; set; } = "http://localhost:3001";
-    public string AppId { get; set; } = "local_spa_app_id";
-    public string M2MAppId { get; set; } = "local_m2m_app_id";
-    public string M2MAppSecret { get; set; } = "local_m2m_app_secret";
-    public string ApiResource { get; set; } = "https://api.resumetwin.local";
-    public string MagicLinkBaseUrl { get; set; } = "http://localhost:5173";
-    public string? WebhookSecret { get; set; }
-    public string SmtpHost { get; set; } = "localhost";
-    public int SmtpPort { get; set; } = 2500;
-}
-
-public sealed class CloudLogtoOptions
-{
-    public string Endpoint { get; set; } = "https://tenant.logto.app";
-    public string AppId { get; set; } = "YOUR_LOGTO_SPA_APP_ID";
-    public string M2MAppId { get; set; } = "YOUR_LOGTO_M2M_APP_ID";
-    public string M2MAppSecret { get; set; } = "YOUR_LOGTO_M2M_SECRET";
-    public string ApiResource { get; set; } = "https://api.resumetwin.local";
-    public string MagicLinkBaseUrl { get; set; } = "http://localhost:5173";
+    /// <summary>
+    /// Clerk Webhook Signing Secret: whsec_...
+    /// </summary>
     public string? WebhookSecret { get; set; }
 
-    public bool IsM2MConfigured =>
-        !string.IsNullOrWhiteSpace(M2MAppId) &&
-        !M2MAppId.StartsWith("YOUR_") &&
-        !string.IsNullOrWhiteSpace(M2MAppSecret) &&
-        !M2MAppSecret.StartsWith("YOUR_");
+    /// <summary>
+    /// Optional Audience for JWT validation if customized in Clerk JWT template.
+    /// </summary>
+    public string? Audience { get; set; }
+
+    public bool IsConfigured =>
+        !string.IsNullOrWhiteSpace(Issuer) &&
+        !Issuer.StartsWith("YOUR_") &&
+        !string.IsNullOrWhiteSpace(SecretKey) &&
+        !SecretKey.StartsWith("YOUR_");
 }

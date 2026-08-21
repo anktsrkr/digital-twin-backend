@@ -620,6 +620,12 @@ body {
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  transition: grid-template-columns 0.3s cubic-bezier(0.16, 1, 0.3, 1), gap 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.console-main-grid.sidebar-collapsed {
+  grid-template-columns: 0px 1fr;
+  gap: 0;
 }
 
 /* Hide CopilotKit dev floating badge */
@@ -633,9 +639,28 @@ button[aria-label="Open CopilotKit Dev Console"],
 .dossier-pane {
   height: 100%;
   min-height: 0;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  transition: opacity 0.22s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s;
+  will-change: transform, opacity;
+}
+
+.dossier-pane-inner {
+  width: 390px;
+  min-width: 390px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.console-main-grid.sidebar-collapsed .dossier-pane {
+  opacity: 0;
+  transform: translateX(-16px);
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .terminal-pane {
@@ -644,6 +669,68 @@ button[aria-label="Open CopilotKit Dev Console"],
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+/* Sidebar Collapse / Expand Toggle Buttons */
+.sidebar-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  background: #FFFFFF;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 550;
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: all 0.15s ease;
+  user-select: none;
+  line-height: 1;
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+  transform: translateY(-0.5px);
+  box-shadow: var(--shadow-sm);
+}
+
+.sidebar-toggle-btn:active {
+  transform: translateY(0);
+}
+
+.sidebar-toggle-btn .shortcut-hint {
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--bg-surface-subtle);
+  padding: 0.08rem 0.28rem;
+  border-radius: 3px;
+  border: 1px solid var(--border-hairline);
+  margin-left: 0.15rem;
+  line-height: 1;
+}
+
+.sidebar-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hairline);
 }
 
 /* =========================================================================
@@ -722,9 +809,23 @@ aside::-webkit-scrollbar-thumb:hover,
     grid-template-columns: 350px 1fr;
     gap: 0.85rem;
   }
+
+  .console-main-grid.sidebar-collapsed {
+    grid-template-columns: 0px 1fr;
+    gap: 0;
+  }
+
+  .dossier-pane-inner {
+    width: 350px;
+    min-width: 350px;
+  }
 }
 
 @media (max-width: 860px) {
+  .sidebar-toggle-btn,
+  .sidebar-collapse-btn {
+    display: none !important;
+  }
   html, body {
     overflow-y: auto;
     height: auto;

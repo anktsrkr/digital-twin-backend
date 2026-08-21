@@ -92,29 +92,29 @@ export const FollowUpPills: React.FC<FollowUpPillsProps> = ({
     const isBooking = pill.action_type === 'book_call' || pill.id.includes('book') || pill.id.includes('call');
 
     let bg = '#FFFFFF';
-    let border = 'var(--border-hairline)';
+    let borderColor = 'var(--border-hairline)';
     let textColor = 'var(--text-secondary)';
     let hoverBg = 'var(--bg-surface-hover)';
-    let hoverBorder = 'var(--border-subtle)';
+    let hoverBorderColor = 'var(--border-subtle)';
     let hoverText = 'var(--text-primary)';
     let icon = <MessageSquare size={12} color="var(--text-secondary)" />;
     let shadow = 'var(--shadow-xs)';
 
     if (isDownload) {
       bg = 'var(--accent-emerald-subtle)';
-      border = 'var(--accent-emerald-border)';
+      borderColor = 'var(--accent-emerald-border)';
       textColor = '#065F46';
       hoverBg = '#D1FAE5';
-      hoverBorder = '#6EE7B7';
+      hoverBorderColor = '#6EE7B7';
       hoverText = '#047857';
       icon = <FileDown size={13} color="#059669" />;
       shadow = '0 1px 3px rgba(5, 150, 105, 0.1)';
     } else if (isBooking) {
       bg = '#FFFFFF';
-      border = '1px solid var(--accent-slate)';
+      borderColor = 'var(--accent-slate)';
       textColor = 'var(--accent-slate)';
       hoverBg = 'var(--bg-surface-hover)';
-      hoverBorder = 'var(--accent-slate)';
+      hoverBorderColor = 'var(--accent-slate)';
       hoverText = 'var(--text-primary)';
       icon = <Calendar size={13} color="var(--accent-slate)" />;
       shadow = 'var(--shadow-xs)';
@@ -128,7 +128,7 @@ export const FollowUpPills: React.FC<FollowUpPillsProps> = ({
         title={pill.prompt}
         style={{
           background: bg,
-          border: isBooking ? border : `1px solid ${border}`,
+          border: `1px solid ${borderColor}`,
           borderRadius: 'var(--radius-full)',
           padding: isDownload || isBooking ? '0.35rem 0.85rem' : '0.32rem 0.75rem',
           fontSize: '0.78125rem',
@@ -146,18 +146,16 @@ export const FollowUpPills: React.FC<FollowUpPillsProps> = ({
         }}
         onMouseEnter={(e) => {
           if (disabled) return;
-          e.currentTarget.style.borderColor = hoverBorder;
+          e.currentTarget.style.borderColor = hoverBorderColor;
           e.currentTarget.style.color = hoverText;
           e.currentTarget.style.background = hoverBg;
-          e.currentTarget.style.transform = 'translateY(-1px)';
           e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
         }}
         onMouseLeave={(e) => {
           if (disabled) return;
-          e.currentTarget.style.borderColor = border;
+          e.currentTarget.style.borderColor = borderColor;
           e.currentTarget.style.color = textColor;
           e.currentTarget.style.background = bg;
-          e.currentTarget.style.transform = 'none';
           e.currentTarget.style.boxShadow = shadow;
         }}
       >

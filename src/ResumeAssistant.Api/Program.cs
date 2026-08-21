@@ -31,7 +31,7 @@ var embeddingOptions = builder.Configuration.GetSection(EmbeddingOptions.Section
 var jinaOptions = builder.Configuration.GetSection(JinaAiOptions.SectionName).Get<JinaAiOptions>() ?? new JinaAiOptions();
 var voyageOptions = builder.Configuration.GetSection(VoyageAiOptions.SectionName).Get<VoyageAiOptions>() ?? new VoyageAiOptions();
 var mongoOptions = builder.Configuration.GetSection(MongoDbOptions.SectionName).Get<MongoDbOptions>() ?? new MongoDbOptions();
-var logtoOptions = builder.Configuration.GetSection(LogtoOptions.SectionName).Get<LogtoOptions>() ?? new LogtoOptions();
+var clerkOptions = builder.Configuration.GetSection(ClerkOptions.SectionName).Get<ClerkOptions>() ?? new ClerkOptions();
 var calComOptions = builder.Configuration.GetSection(CalComOptions.SectionName).Get<CalComOptions>() ?? new CalComOptions();
 
 // Allow overriding via environment variables
@@ -63,14 +63,11 @@ if (builder.Configuration["MONGODB_MODE"] is { } mMode) mongoOptions.Mode = mMod
 if (builder.Configuration["MONGODB_CONNECTION_STRING"] is { } mConn) { if (mongoOptions.IsCloud) mongoOptions.Cloud.ConnectionString = mConn; else mongoOptions.Local.ConnectionString = mConn; }
 if (builder.Configuration["MONGODB_DATABASE"] is { } mDb) mongoOptions.DatabaseName = mDb;
 
-if (builder.Configuration["LOGTO_MODE"] is { } lgMode) logtoOptions.Mode = lgMode;
-if (builder.Configuration["LOGTO_ENDPOINT"] is { } lgEndpoint) { if (logtoOptions.IsCloud) logtoOptions.Cloud.Endpoint = lgEndpoint; else logtoOptions.Local.Endpoint = lgEndpoint; }
-if (builder.Configuration["LOGTO_APP_ID"] is { } lgAppId) { if (logtoOptions.IsCloud) logtoOptions.Cloud.AppId = lgAppId; else logtoOptions.Local.AppId = lgAppId; }
-if (builder.Configuration["LOGTO_M2M_APP_ID"] is { } lgM2mId) { if (logtoOptions.IsCloud) logtoOptions.Cloud.M2MAppId = lgM2mId; else logtoOptions.Local.M2MAppId = lgM2mId; }
-if (builder.Configuration["LOGTO_M2M_SECRET"] is { } lgM2mSec) { if (logtoOptions.IsCloud) logtoOptions.Cloud.M2MAppSecret = lgM2mSec; else logtoOptions.Local.M2MAppSecret = lgM2mSec; }
-if (builder.Configuration["LOGTO_API_RESOURCE"] is { } lgRes) { if (logtoOptions.IsCloud) logtoOptions.Cloud.ApiResource = lgRes; else logtoOptions.Local.ApiResource = lgRes; }
-if (builder.Configuration["LOGTO_MAGIC_LINK_BASE_URL"] is { } lgMagicUrl) { if (logtoOptions.IsCloud) logtoOptions.Cloud.MagicLinkBaseUrl = lgMagicUrl; else logtoOptions.Local.MagicLinkBaseUrl = lgMagicUrl; }
-if (builder.Configuration["LOGTO_WEBHOOK_SECRET"] is { } lgWebhookSec) { if (logtoOptions.IsCloud) logtoOptions.Cloud.WebhookSecret = lgWebhookSec; else logtoOptions.Local.WebhookSecret = lgWebhookSec; }
+if (builder.Configuration["CLERK_ISSUER"] is { } clIssuer) clerkOptions.Issuer = clIssuer;
+if (builder.Configuration["CLERK_PUBLISHABLE_KEY"] is { } clPubKey) clerkOptions.PublishableKey = clPubKey;
+if (builder.Configuration["CLERK_SECRET_KEY"] is { } clSecKey) clerkOptions.SecretKey = clSecKey;
+if (builder.Configuration["CLERK_WEBHOOK_SECRET"] is { } clWhSec) clerkOptions.WebhookSecret = clWhSec;
+if (builder.Configuration["CLERK_AUDIENCE"] is { } clAud) clerkOptions.Audience = clAud;
 
 if (builder.Configuration["CALCOM_API_KEY"] is { } calApiKey) calComOptions.ApiKey = calApiKey;
 if (builder.Configuration["CALCOM_EVENT_TYPE_ID"] is { } calEventId && int.TryParse(calEventId, out var parsedEventId)) calComOptions.EventTypeId = parsedEventId;
@@ -84,7 +81,7 @@ builder.Services.AddSingleton(embeddingOptions);
 builder.Services.AddSingleton(jinaOptions);
 builder.Services.AddSingleton(voyageOptions);
 builder.Services.AddSingleton(mongoOptions);
-builder.Services.AddSingleton(logtoOptions);
+builder.Services.AddSingleton(clerkOptions);
 builder.Services.AddSingleton(calComOptions);
 builder.Services.AddSingleton<IFollowUpAgent, FollowUpAgent>();
 builder.Services.AddHttpClient();
@@ -184,20 +181,20 @@ builder.Services.AddControllers();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        // Validates RS256 JWTs directly against Logto's OpenID Discovery & JWKS endpoint
-        options.Authority = $"{logtoOptions.GetResolvedEndpoint().TrimEnd('/')}/oidc";
-        options.Audience = logtoOptions.GetResolvedApiResource();
-        options.RequireHttpsMetadata = logtoOptions.IsCloud; // Local Logto might be HTTP
+        // Validates RS256 JWTs against Clerk's OpenID Discovery & JWKS endpoint
+        var authority = clerkOptions.Issuer.TrimEnd('/');
+        options.Authority = authority;
+        options.RequireHttpsMetadata = authority.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = $"{logtoOptions.GetResolvedEndpoint().TrimEnd('/')}/oidc",
-            ValidateAudience = true,
-            ValidAudience = logtoOptions.GetResolvedApiResource(),
+            ValidIssuer = authority,
+            ValidateAudience = !string.IsNullOrWhiteSpace(clerkOptions.Audience),
+            ValidAudience = clerkOptions.Audience,
             ValidateLifetime = true
         };
 
-        // Allow token to be passed via query string for WebSocket/SignalR connections
+        // Allow token to be passed via query string for WebSocket/SignalR/AG-UI connections
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -235,7 +232,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Add(new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver());
 });
 builder.Services.AddSingleton<IDisposableEmailValidator, DisposableEmailValidator>();
-builder.Services.AddHttpClient<ILogtoManagementService, LogtoManagementService>(client =>
+builder.Services.AddHttpClient<IClerkManagementService, ClerkManagementService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(15);
 });
@@ -359,11 +356,9 @@ app.MapGet("/api/health", () => Results.Ok(new
     status = "healthy",
     runtime = ".NET 10",
     service = "ResumeAssistant.Api",
-    authProvider = "Logto Magic Link (Passwordless One-Time Token)",
-    logtoMode = logtoOptions.Mode,
-    logtoEndpoint = logtoOptions.GetResolvedEndpoint(),
-    logtoAppId = logtoOptions.GetResolvedAppId(),
-    logtoM2MConfigured = logtoOptions.IsCloud ? logtoOptions.Cloud.IsM2MConfigured : true,
+    authProvider = "Clerk Authentication (RS256 Session JWT)",
+    clerkIssuer = clerkOptions.Issuer,
+    clerkConfigured = clerkOptions.IsConfigured,
     llmMode = llmOptions.Mode,
     llmProvider = llmOptions.IsLocal ? $"LM Studio ({llmOptions.Local.Model})" : $"Cloudflare Workers AI ({llmOptions.Cloud.Model})",
     llmEndpoint = llmOptions.IsLocal ? llmOptions.Local.Endpoint : llmOptions.Cloud.GetResolvedBaseUrl(),

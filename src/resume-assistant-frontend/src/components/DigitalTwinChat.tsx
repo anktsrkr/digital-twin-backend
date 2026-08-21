@@ -2,19 +2,21 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   CheckCircle2, 
   Lock, 
-  ArrowUpRight,
-  Send,
-  Square,
-  AlertCircle,
-  BookOpen,
-  ChevronDown,
-  ChevronUp,
-  Terminal,
-  Zap,
-  Bot,
-  Building2,
-  Calendar,
-  User
+  ArrowUpRight, 
+  Send, 
+  Square, 
+  AlertCircle, 
+  BookOpen, 
+  ChevronDown, 
+  ChevronUp, 
+  Terminal, 
+  Zap, 
+  Bot, 
+  Building2, 
+  Calendar, 
+  User,
+  PanelLeftOpen,
+  PanelLeftClose
 } from 'lucide-react';
 import { 
   useAgent,
@@ -29,7 +31,7 @@ import type { CitationDetail } from './CitationDrawer';
 import { ScheduleMeetingCard, DownloadResumeCard } from './ActionCards';
 import { LiveSlotPicker } from './LiveSlotPicker';
 import { FollowUpPills, type FollowUpPillItem } from './FollowUpPills';
-import { getSavedRecruiterSession } from '../lib/logtoClient';
+import { getSavedRecruiterSession } from '../lib/session';
 
 interface DigitalTwinChatProps {
   isAuthenticated: boolean;
@@ -40,6 +42,8 @@ interface DigitalTwinChatProps {
   externalPrompt?: string | null;
   onClearExternalPrompt?: () => void;
   onAgentStateChange?: (isRunning: boolean) => void;
+  isSidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 interface QuickPromptItem {
@@ -147,22 +151,29 @@ const parseResult = (data: any) => {
  * Clean up raw error strings that might contain escaped JSON error payloads from Cal.com
  */
 const sanitizeErrorMessage = (rawMsg?: string): string => {
-  if (!rawMsg) return 'Please try again or visit cal.com/anktsrkr to book directly.';
-  if (typeof rawMsg === 'string' && rawMsg.includes('{')) {
-    try {
-      const jsonIdx = rawMsg.indexOf('{');
-      const jsonPart = rawMsg.substring(jsonIdx);
-      const parsedObj = JSON.parse(jsonPart);
-      if (parsedObj?.error?.message) return parsedObj.error.message;
-      if (parsedObj?.details?.message) return parsedObj.details.message;
-      if (parsedObj?.message) {
-        if (parsedObj.message === 'email_domain_cannot_receive_mail') {
-          return 'Cal.com cannot deliver calendar invites to this email domain. Please use a verified company email address.';
+  if (!rawMsg) return 'Please select another time slot or visit cal.com/ankitsarkar to book directly.';
+  if (typeof rawMsg === 'string') {
+    if (rawMsg.includes('already has booking') || rawMsg.includes('not available')) {
+      return "This specific slot is no longer open or conflicts with an existing appointment on Ankit's calendar. Please select another slot or book directly on Cal.com.";
+    }
+    if (rawMsg.includes('{')) {
+      try {
+        const jsonIdx = rawMsg.indexOf('{');
+        const jsonPart = rawMsg.substring(jsonIdx);
+        const parsedObj = JSON.parse(jsonPart);
+        const candidateMsg = parsedObj?.error?.message || parsedObj?.details?.message || parsedObj?.message;
+        if (candidateMsg) {
+          if (candidateMsg === 'email_domain_cannot_receive_mail') {
+            return 'Cal.com cannot deliver calendar invites to this email domain. Please use a verified company email address.';
+          }
+          if (candidateMsg.includes('already has booking') || candidateMsg.includes('not available')) {
+            return "This specific slot is no longer open or conflicts with an existing appointment on Ankit's calendar. Please select another slot or book directly on Cal.com.";
+          }
+          return candidateMsg;
         }
-        return parsedObj.message;
+      } catch {
+        // fallback
       }
-    } catch {
-      // fallback
     }
   }
   return rawMsg;
@@ -190,7 +201,7 @@ const KnowledgeSearchCard: React.FC<KnowledgeSearchCardProps> = ({
         <div className="telemetry-spinner" />
         <div className="telemetry-text">
           <span>Evaluating verified architecture case studies for <em>"{query}"</em></span>
-          <span className="telemetry-badge">pgvector • Voyage AI</span>
+          <span className="telemetry-badge">MongoDB • Jina AI</span>
         </div>
       </div>
     );
@@ -336,7 +347,9 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
   onBlockedEmail,
   externalPrompt,
   onClearExternalPrompt,
-  onAgentStateChange
+  onAgentStateChange,
+  isSidebarCollapsed = false,
+  onToggleSidebar
 }) => {
   const { agent } = useAgent();
   const { copilotkit } = useCopilotKit();
@@ -348,9 +361,7 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const backendUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:5000'
-    : (import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000');
+  const backendUrl = import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   // Notify parent of agent running state
   useEffect(() => {
@@ -449,8 +460,8 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
         <ScheduleMeetingCard 
           headline={parsed?.headline || "Schedule a Call or Technical Screening with Ankit Sarkar"}
           recommendedTopic={parsed?.recommended_topic || parameters?.interviewType || 'AI Solutions Architecture, Agentic Systems & Enterprise Cloud'}
-          bookingUrl={parsed?.booking_url || "https://cal.com/anktsrkr"}
-          durations={parsed?.available_durations || ['10 min catch-up', '15 min intro', '30 min screening', '45 min deep-dive', '60 min system design']}
+          bookingUrl={parsed?.booking_url || "https://cal.com/ankitsarkar"}
+          durations={parsed?.available_durations || ['15 min intro', '30 min screening', '60 min system design']}
         />
       );
     }
@@ -480,7 +491,7 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
       const parsed = parseResult(result);
       const slots = parsed?.slots || parsed?.Slots || [];
       const timeZone = parsed?.time_zone || parsed?.TimeZone || 'Europe/London';
-      const bookingUrl = parsed?.booking_url || parsed?.BookingUrl || 'https://cal.com/anktsrkr';
+      const bookingUrl = parsed?.booking_url || parsed?.BookingUrl || 'https://cal.com/ankitsarkar/30min';
       const duration = parameters?.durationInMinutes || parsed?.duration || 30;
 
       if (status !== 'complete' && slots.length === 0) {
@@ -502,8 +513,8 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
           duration={duration}
           bookingUrl={bookingUrl}
           isBooking={agent.isRunning}
-          onSelectSlot={(slot) => {
-            handleSlotBooking(slot, duration);
+          onSelectSlot={(slot, chosenDuration) => {
+            handleSlotBooking(slot, chosenDuration || duration);
           }}
         />
       );
@@ -575,7 +586,7 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
             </p>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <a
-                href="https://cal.com/anktsrkr"
+                href="https://cal.com/ankitsarkar/30min"
                 target="_blank"
                 rel="noreferrer"
                 className="btn-primary"
@@ -590,8 +601,50 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
                   gap: '0.35rem'
                 }}
               >
-                <span>Open Cal.com Calendar</span>
+                <span>Open Cal.com (30min)</span>
                 <ArrowUpRight size={13} />
+              </a>
+              <a
+                href="https://cal.com/ankitsarkar/15min"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '0.75rem',
+                  padding: '0.45rem 0.75rem',
+                  background: '#FFFFFF',
+                  color: '#991B1B',
+                  border: '1px solid #FECACA',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontWeight: 600
+                }}
+              >
+                <span>15min Intro</span>
+                <ArrowUpRight size={12} />
+              </a>
+              <a
+                href="https://cal.com/ankitsarkar/60min"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '0.75rem',
+                  padding: '0.45rem 0.75rem',
+                  background: '#FFFFFF',
+                  color: '#991B1B',
+                  border: '1px solid #FECACA',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontWeight: 600
+                }}
+              >
+                <span>60min Deep-Dive</span>
+                <ArrowUpRight size={12} />
               </a>
             </div>
           </div>
@@ -806,8 +859,9 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
   const handleSelectPill = useCallback((pill: FollowUpPillItem) => {
     if (pill.action_type === 'download_resume' || pill.id.includes('download')) {
       // Direct browser download of PDF
+      const basePath = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
       const link = document.createElement('a');
-      link.href = '/resume.pdf';
+      link.href = `${basePath}/resume.pdf`;
       link.download = 'Ankit_Sarkar_AI_Solutions_Architect_Resume.pdf';
       link.click();
 
@@ -946,11 +1000,28 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
           flexWrap: 'wrap',
           gap: '0.45rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <span className="status-dot"></span>
-            <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-              Interactive Digital Twin Terminal
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            {onToggleSidebar && (
+              <button
+                type="button"
+                onClick={onToggleSidebar}
+                className="sidebar-toggle-btn"
+                title={isSidebarCollapsed ? "Expand Architecture Dossier (Ctrl+B)" : "Collapse Architecture Dossier (Ctrl+B)"}
+                aria-label={isSidebarCollapsed ? "Expand Architecture Dossier" : "Collapse Architecture Dossier"}
+              >
+                {isSidebarCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+                <span className="sidebar-toggle-label">
+                  {isSidebarCollapsed ? 'Show Dossier' : 'Sidebar'}
+                </span>
+                <span className="shortcut-hint" style={{ display: isSidebarCollapsed ? 'none' : 'inline-block' }}>⌘B</span>
+              </button>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <span className="status-dot"></span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Interactive Digital Twin Terminal
+              </span>
+            </div>
           </div>
           <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
             Grounded on Verified Production Architecture
@@ -1113,11 +1184,29 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
                 }
               }
 
-              const hasText = textContent && typeof textContent === 'string' && textContent.trim().length > 0;
-              const hasToolCalls = toolCalls.length > 0;
+              const hasText = Boolean(textContent && typeof textContent === 'string' && textContent.trim().length > 0);
+              const hasToolCalls = Boolean(Array.isArray(toolCalls) && toolCalls.length > 0);
 
               if (!isUser && !hasText && !hasToolCalls) {
                 return null;
+              }
+
+              // Check if this is the first message in a consecutive run of assistant messages
+              let isFirstInAssistantRun = false;
+              if (!isUser) {
+                let prevVisibleMsg: any = null;
+                for (let p = index - 1; p >= 0; p--) {
+                  const pm: any = agent.messages[p];
+                  if (pm && pm.role !== 'reasoning' && pm.type !== 'reasoning' && pm.role !== 'tool') {
+                    const pmToolCalls = pm.toolCalls || [];
+                    const pmText = typeof pm.content === 'string' ? pm.content.trim() : '';
+                    if (pm.role === 'user' || pmText.length > 0 || pmToolCalls.length > 0) {
+                      prevVisibleMsg = pm;
+                      break;
+                    }
+                  }
+                }
+                isFirstInAssistantRun = !prevVisibleMsg || prevVisibleMsg.role !== 'assistant';
               }
 
               const session = getSavedRecruiterSession();
@@ -1131,7 +1220,7 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
                   alignItems: 'flex-start',
                   maxWidth: '100%',
                   gap: '0.45rem',
-                  marginTop: isUser ? '0.35rem' : '0.65rem'
+                  marginTop: isUser ? '0.35rem' : (isFirstInAssistantRun ? '0.65rem' : '0.15rem')
                 }}>
                   {/* Recruiter Persona Header */}
                   {isUser && (
@@ -1165,8 +1254,8 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
                     </div>
                   )}
 
-                  {/* Assistant Persona Header */}
-                  {!isUser && (
+                  {/* Assistant Persona Header — shown once per contiguous assistant turn */}
+                  {!isUser && isFirstInAssistantRun && (
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',

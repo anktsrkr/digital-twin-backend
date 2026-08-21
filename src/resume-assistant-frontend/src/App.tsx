@@ -5,14 +5,15 @@ import { DigitalTwinChat } from './components/DigitalTwinChat';
 import { AuthModal } from './components/AuthModal';
 import { BlockedEmailModal } from './components/BlockedEmailModal';
 import { CitationDrawer, type CitationDetail } from './components/CitationDrawer';
-import { Callback } from './components/Callback';
-import { useLogto } from '@logto/react';
+import { useAuth, useUser, useClerk } from '@clerk/clerk-react';
 import { BookOpen, Terminal } from 'lucide-react';
-import { getSavedRecruiterSession, saveRecruiterSession, clearRecruiterSession } from './lib/logtoClient';
+import { getSavedRecruiterSession, saveRecruiterSession, clearRecruiterSession } from './lib/session';
 import './styles/index.css';
 
 export function App() {
-  const { isAuthenticated, isLoading, signIn, signOut, getAccessToken, getIdTokenClaims, fetchUserInfo } = useLogto();
+  const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { user } = useUser();
+  const { signOut, openSignIn } = useClerk();
   const isProcessingAuthRef = useRef(false);
   
   // Initialize state immediately from cached localStorage session to prevent reload flicker/flash
@@ -35,37 +36,50 @@ export function App() {
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [mobileTab, setMobileTab] = useState<'dossier' | 'terminal'>('dossier');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sidebar_collapsed') === 'true';
+    }
+    return false;
+  });
+
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sidebar_collapsed', String(next));
+      }
+      return next;
+    });
+  }, []);
+
+  // Keyboard shortcut: Cmd+B / Ctrl+B to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSidebar]);
 
   // Maintain effective authentication state across reload/hydration
-  const isEffectivelyAuthenticated = isAuthenticated || (isLoading && !!recruiterEmail);
+  const isEffectivelyAuthenticated = !!isSignedIn || (!isLoaded && !!recruiterEmail);
 
-  const backendUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:5000'
-    : (import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000');
+  const backendUrl = import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isSignedIn && isLoaded) {
       if (isProcessingAuthRef.current) return;
       isProcessingAuthRef.current = true;
 
       (async () => {
         try {
-          // Fetch Logto access token scoped for the .NET API
-          const resourceToken = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE || 'api://digital.twin');
-
-          // Prefer reading claims directly from ID token (avoid unnecessary /oidc/me network requests)
-          let email: string | undefined;
-          try {
-            const claims = await getIdTokenClaims();
-            email = claims?.email ?? undefined;
-          } catch {
-            // Fallback to fetchUserInfo if claims retrieval fails
-          }
-
-          if (!email) {
-            const userInfo = await fetchUserInfo();
-            email = userInfo?.email ?? undefined;
-          }
+          // Fetch Clerk RS256 JWT session token
+          const sessionToken = await getToken();
+          const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses?.[0]?.emailAddress;
 
           let inferredCompany: string | undefined = undefined;
 
@@ -83,7 +97,7 @@ export function App() {
             }
           }
 
-          setToken(resourceToken ?? null);
+          setToken(sessionToken ?? null);
           setRecruiterEmail(email);
           setIsBlockedEmail(false);
 
@@ -91,7 +105,8 @@ export function App() {
             saveRecruiterSession({
               email,
               company: inferredCompany,
-              token: resourceToken ?? undefined,
+              token: sessionToken ?? undefined,
+              userId: user?.id,
               authenticatedAt: new Date().toISOString()
             });
           }
@@ -101,21 +116,21 @@ export function App() {
             setPendingPrompt(null);
           }
         } catch (error) {
-          console.error('Failed to fetch Logto token/userinfo:', error);
+          console.error('Failed to fetch Clerk session token / user info:', error);
         } finally {
           isProcessingAuthRef.current = false;
         }
       })();
-    } else if (!isLoading) {
+    } else if (isLoaded && !isSignedIn) {
       isProcessingAuthRef.current = false;
-      // Only clear if Logto has completed initialization and confirmed unauthenticated
+      // Clear session when Clerk confirms signed out
       setToken(null);
       setRecruiterEmail(undefined);
       setRecruiterCompany(undefined);
       setIsBlockedEmail(false);
       clearRecruiterSession();
     }
-  }, [isAuthenticated, isLoading, getAccessToken, getIdTokenClaims, fetchUserInfo, pendingPrompt]);
+  }, [isSignedIn, isLoaded, getToken, user, pendingPrompt]);
 
   // Global network interceptor: distinguish between Blocked Disposable Email (X-Blocked-Reason / 403) vs Regular 401 Session Expiry
   useEffect(() => {
@@ -142,8 +157,8 @@ export function App() {
   }, []);
 
   const handleAuthSuccess = () => {
-    const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/callback` : 'http://localhost:5173/callback';
-    signIn(redirectUrl);
+    setIsAuthOpen(false);
+    openSignIn();
   };
 
   const handleSignOut = () => {
@@ -151,17 +166,13 @@ export function App() {
     setToken(null);
     setRecruiterEmail(undefined);
     setRecruiterCompany(undefined);
-    const redirectUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
-    signOut(redirectUrl);
+    signOut();
   };
 
-  if (typeof window !== 'undefined' && window.location.pathname === '/callback') {
-    return <Callback />;
-  }
-
   const handleDownloadPdf = useCallback(() => {
+    const basePath = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
     const link = document.createElement('a');
-    link.href = '/resume.pdf';
+    link.href = `${basePath}/resume.pdf`;
     link.download = 'Ankit_Sarkar_AI_Solutions_Architect_Resume.pdf';
     link.click();
   }, []);
@@ -215,20 +226,23 @@ export function App() {
           </div>
 
           {/* Main Dual-Pane Console Grid */}
-          <main className="console-main-grid">
+          <main className={`console-main-grid ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
             {/* Left Pane: Architecture Dossier */}
             <section className={`dossier-pane ${mobileTab !== 'dossier' ? 'hide-mobile' : ''}`}>
-              <ArchitectureDossier
-                onSelectPrompt={handleSelectPrompt}
-                onScheduleClick={handleScheduleClick}
-                onDownloadPdf={handleDownloadPdf}
-                isAgentRunning={isAgentRunning}
-                isAuthenticated={isEffectivelyAuthenticated}
-                recruiterEmail={recruiterEmail}
-                recruiterCompany={recruiterCompany}
-                onOpenAuth={() => setIsAuthOpen(true)}
-                onSignOut={handleSignOut}
-              />
+              <div className="dossier-pane-inner">
+                <ArchitectureDossier
+                  onSelectPrompt={handleSelectPrompt}
+                  onScheduleClick={handleScheduleClick}
+                  onDownloadPdf={handleDownloadPdf}
+                  isAgentRunning={isAgentRunning}
+                  isAuthenticated={isEffectivelyAuthenticated}
+                  recruiterEmail={recruiterEmail}
+                  recruiterCompany={recruiterCompany}
+                  onOpenAuth={() => setIsAuthOpen(true)}
+                  onSignOut={handleSignOut}
+                  onToggleSidebar={toggleSidebar}
+                />
+              </div>
             </section>
 
             {/* Right Pane: Digital Twin Interactive Console */}
@@ -242,12 +256,14 @@ export function App() {
                 externalPrompt={selectedPrompt}
                 onClearExternalPrompt={() => setSelectedPrompt(null)}
                 onAgentStateChange={setIsAgentRunning}
+                isSidebarCollapsed={isSidebarCollapsed}
+                onToggleSidebar={toggleSidebar}
               />
             </section>
           </main>
         </div>
 
-        {/* Recruiter Magic Link Modal */}
+        {/* Recruiter Authentication Modal */}
         <AuthModal
           isOpen={isAuthOpen}
           onClose={() => setIsAuthOpen(false)}

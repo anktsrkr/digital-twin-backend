@@ -8,7 +8,8 @@ import {
   ChevronRight,
   Globe,
   ShieldCheck,
-  KeyRound
+  KeyRound,
+  PanelLeftClose
 } from 'lucide-react';
 
 export interface ArchitectureDossierProps {
@@ -21,6 +22,7 @@ export interface ArchitectureDossierProps {
   recruiterCompany?: string;
   onOpenAuth?: () => void;
   onSignOut?: () => void;
+  onToggleSidebar?: () => void;
 }
 
 interface CaseStudy {
@@ -82,7 +84,8 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
   recruiterEmail,
   recruiterCompany,
   onOpenAuth,
-  onSignOut
+  onSignOut,
+  onToggleSidebar
 }) => {
   const [activeTab, setActiveTab] = useState<'case-studies' | 'tech-matrix'>('case-studies');
 
@@ -107,7 +110,7 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
         padding: '1.2rem',
         boxShadow: 'var(--shadow-xs)'
       }}>
-        {/* Candidate Identity & Experience Badge + Socials */}
+        {/* Candidate Identity & Experience Badge + Socials + Collapse Button */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.35rem', gap: '0.5rem' }}>
           <div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2 }}>
@@ -135,6 +138,18 @@ export const ArchitectureDossier: React.FC<ArchitectureDossierProps> = ({
               </svg>
             </a>
             <span className="badge-mono" style={{ marginLeft: '0.1rem' }}>13+ Yrs</span>
+            {onToggleSidebar && (
+              <button
+                type="button"
+                onClick={onToggleSidebar}
+                className="btn-icon sidebar-collapse-btn"
+                style={{ width: '28px', height: '28px', borderRadius: '6px', marginLeft: '0.15rem' }}
+                title="Collapse Sidebar (Ctrl+B)"
+                aria-label="Collapse Sidebar"
+              >
+                <PanelLeftClose size={13} color="var(--text-secondary)" />
+              </button>
+            )}
           </div>
         </div>
 

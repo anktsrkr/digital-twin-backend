@@ -55,16 +55,12 @@
       "ConnectionString": "YOUR_MONGODB_ATLAS_CONNECTION_STRING"
     }
   },
-  "Logto": {
-    "Mode": "Cloud",
-    "Cloud": {
-      "Endpoint": "https://wc0dj0.logto.app",
-      "AppId": "8s6tqou7bndvwp5zdtsbi",
-      "M2MAppId": "YOUR_LOGTO_M2M_APP_ID",
-      "M2MAppSecret": "YOUR_LOGTO_M2M_APP_SECRET",
-      "ApiResource": "api://digital.twin",
-      "MagicLinkBaseUrl": "https://anktsrkr.github.io/digital-twin-ui"
-    }
+  "Clerk": {
+    "Issuer": "https://clerk.anktsrkr.github.io",
+    "PublishableKey": "YOUR_CLERK_PUBLISHABLE_KEY",
+    "SecretKey": "YOUR_CLERK_SECRET_KEY",
+    "WebhookSecret": "YOUR_CLERK_WEBHOOK_SECRET",
+    "Audience": ""
   },
   "CalCom": {
     "ApiKey": "YOUR_CALCOM_API_KEY",
