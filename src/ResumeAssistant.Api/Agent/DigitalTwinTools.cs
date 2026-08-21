@@ -6,16 +6,16 @@ namespace ResumeAssistant.Api.Agent;
 
 public static class DigitalTwinTools
 {
-    [Description("Displays an interactive meeting scheduler card allowing the recruiter to browse all available meeting formats (10m, 15m, 30m, 45m, 60m) or open the Cal.com scheduling portal directly.")]
+    [Description("Displays an interactive meeting scheduler card allowing the recruiter to browse all available meeting formats (15m intro, 30m screening, 60m system design) or open the Cal.com scheduling portal directly.")]
     public static ScheduleMeetingCardResponse ShowScheduleInterviewCard(
-        [Description("The preferred interview topic or duration: e.g. '10 min Quick Catch-up', 'AI Architecture Discussion (30 min)', 'Principal Engineer Screening', or 'System Design (60 min)'")]
+        [Description("The preferred interview topic or duration: e.g. '15 min Quick Catch-up', 'AI Architecture Discussion (30 min)', 'Principal Engineer Screening', or 'System Design (60 min)'")]
         string interviewType = "AI Architecture Discussion")
     {
         return new ScheduleMeetingCardResponse
         {
             CardType = "ScheduleInterviewCard",
-            BookingUrl = "https://cal.com/anktsrkr",
-            AvailableDurations = ["10 min catch-up", "15 min intro", "30 min screening", "45 min deep-dive", "60 min system design"],
+            BookingUrl = "https://cal.com/ankitsarkar",
+            AvailableDurations = ["15 min intro", "30 min screening", "60 min system design"],
             Headline = "Schedule a Call / Technical Discussion with Ankit Sarkar",
             RecommendedTopic = interviewType
         };
@@ -77,7 +77,7 @@ public sealed class DigitalTwinCalendarTools(ICalComService calComService)
     }
 }
 
-public sealed class DigitalTwinKnowledgeTools(SupabaseRagSearcher ragSearcher)
+public sealed class DigitalTwinKnowledgeTools(MongoDbRagSearcher ragSearcher)
 {
     [Description("Searches Ankit Sarkar's verified resume, architecture case studies, technical achievements, and work history. Call this whenever answering specific questions about Ankit's past roles, technical architectures, certifications, or project specifics. Do NOT call for availability, scheduling, or booking requests.")]
     public async Task<KnowledgeSearchResponse> SearchResumeKnowledgeBase(
@@ -258,6 +258,8 @@ public sealed class FollowUpResponse
 [JsonSerializable(typeof(CalBookingResponse))]
 [JsonSerializable(typeof(CalSlotDetails))]
 [JsonSerializable(typeof(List<CalSlotDetails>))]
+[JsonSerializable(typeof(CalEventTypeItem))]
+[JsonSerializable(typeof(List<CalEventTypeItem>))]
 [JsonSerializable(typeof(Dictionary<string, object?>))]
 [JsonSerializable(typeof(FollowUpRequest))]
 [JsonSerializable(typeof(FollowUpResponse))]

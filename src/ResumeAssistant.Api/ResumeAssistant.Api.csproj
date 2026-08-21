@@ -9,20 +9,22 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ResumeAssistant.Core\ResumeAssistant.Core.csproj" />
-    <ProjectReference Include="..\..\..\voyage-ai-sdk\src\VoyageAI.Sdk\VoyageAI.Sdk.csproj" />
-    <ProjectReference Include="..\..\..\voyage-ai-sdk\src\VoyageAI.Microsoft.Extensions.AI\VoyageAI.Microsoft.Extensions.AI.csproj" />
-    <ProjectReference Include="..\..\..\voyage-ai-sdk\src\VoyageAI.AgentFramework\VoyageAI.AgentFramework.csproj" />
-    <ProjectReference Include="..\..\..\..\ScratchPad\ag-ui\sdks\dotnet\src\AGUI.Abstractions\AGUI.Abstractions.csproj" />
-    <ProjectReference Include="..\..\..\..\ScratchPad\ag-ui\sdks\dotnet\src\AGUI.Server\AGUI.Server.csproj" />
-    <ProjectReference Include="..\..\..\..\ScratchPad\ag-ui\sdks\dotnet\samples\AGUI.Samples.Shared\AGUI.Samples.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.18.0" />
+    <PackageReference Include="VoyageAI.Sdk" Version="1.0.1" />
+    <PackageReference Include="VoyageAI.Microsoft.Extensions.AI" Version="1.0.1" />
+    <PackageReference Include="VoyageAI.AgentFramework" Version="1.0.1" />
+    <PackageReference Include="AGUI.Abstractions" Version="0.0.5" />
+    <PackageReference Include="AGUI.Server" Version="0.0.5" />
+    <PackageReference Include="AGUI.Formatting" Version="0.0.5" />
+    <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.18.0-preview.260818.1" />
+    
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.9.0" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.9.0" />
-    <PackageReference Include="OpenAI" Version="2.13.0" />
-    <PackageReference Include="Npgsql" Version="10.0.3" />
-    <PackageReference Include="Pgvector" Version="0.3.2" />
+    <PackageReference Include="OpenAI" Version="2.12.0" />
+    <PackageReference Include="MongoDB.Driver" Version="3.11.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
     
     <!-- OpenTelemetry & Grafana Cloud OTLP Ingestion -->

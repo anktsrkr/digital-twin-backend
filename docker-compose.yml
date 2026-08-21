@@ -1,45 +1,21 @@
 services:
-  # 1. PostgreSQL 17 with pgvector (Vector DB & Recruiter Telemetry)
-  postgres-vector:
-    image: pgvector/pgvector:pg17
-    container_name: resume-postgres-vector
+  # 1. MongoDB 7.0 (Vector DB, Resume Knowledge Base & Persisted Conversation Threads)
+  mongodb:
+    image: mongo:7.0
+    container_name: resume-mongodb
     restart: unless-stopped
     ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: resume_assistant
+      - "27017:27017"
     volumes:
-      - ./database:/docker-entrypoint-initdb.d:ro
-      - pgdata:/var/lib/postgresql/data
+      - ./database/mongodb_init.js:/docker-entrypoint-initdb.d/01_init.js:ro
+      - mongodata:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d resume_assistant"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # 2. Logto Auth Service - Handles Passwordless Magic Links, OIDC & JWTs
-  logto:
-    image: svhd/logto:latest
-    container_name: resume-logto-auth
-    restart: unless-stopped
-    depends_on:
-      postgres-vector:
-        condition: service_healthy
-      inbucket:
-        condition: service_started
-    ports:
-      - "3001:3001" # Logto Admin Console (http://localhost:3001)
-      - "3002:3002" # Logto Core Service / OIDC Endpoints (http://localhost:3002)
-    environment:
-      DB_URL: postgres://postgres:postgres@postgres-vector:5432/resume_assistant?sslmode=disable
-      ENDPOINT: http://localhost:3001
-      ADMIN_ENDPOINT: http://localhost:3002
-      TRUST_PROXY_HEADER: "true"
-
-
-  # 3. Local Email Inbox (Inbucket) - Catch and view all Magic Link OTP emails
+  # 2. Local Email Inbox (Inbucket) - Catch and view all Magic Link OTP emails
   inbucket:
     image: inbucket/inbucket:3.1.0
     container_name: resume-inbucket
@@ -48,7 +24,7 @@ services:
       - "9000:9000" # Inbucket Web UI (http://localhost:9000)
       - "2500:2500" # Inbound SMTP port
 
-  # 4. Local Grafana LGTM OpenTelemetry Stack (Grafana + Tempo + Loki + Prometheus)
+  # 3. Local Grafana LGTM OpenTelemetry Stack (Grafana + Tempo + Loki + Prometheus)
   grafana-lgtm:
     image: grafana/otel-lgtm:latest
     container_name: resume-grafana-lgtm
@@ -63,4 +39,4 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
 
 volumes:
-  pgdata:
+  mongodata:

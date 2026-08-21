@@ -7,10 +7,7 @@
   },
   "AllowedHosts": "*",
   "Telemetry": {
-    "Mode": "Local",
-    "Local": {
-      "OtlpEndpoint": "http://localhost:4318"
-    },
+    "Mode": "Cloud",
     "Cloud": {
       "OtlpEndpoint": "https://otlp-gateway-prod-gb-south-1.grafana.net/otlp",
       "InstanceId": "YOUR_GRAFANA_INSTANCE_ID",
@@ -19,11 +16,6 @@
   },
   "LLM": {
     "Mode": "Cloud",
-    "Local": {
-      "Endpoint": "http://localhost:1234/v1",
-      "Model": "google/gemma-4-e4b",
-      "ApiKey": "lm-studio"
-    },
     "Cloud": {
       "AccountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
       "ApiToken": "YOUR_CLOUDFLARE_API_TOKEN",
@@ -33,11 +25,6 @@
   },
   "FollowUpLLM": {
     "Mode": "Cloud",
-    "Local": {
-      "Endpoint": "http://localhost:1234/v1",
-      "Model": "google/gemma-4-e4b",
-      "ApiKey": "lm-studio"
-    },
     "Cloud": {
       "AccountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
       "ApiToken": "YOUR_CLOUDFLARE_API_TOKEN",
@@ -62,34 +49,21 @@
     "TopK": 4
   },
   "MongoDB": {
-    "Mode": "Local",
+    "Mode": "Cloud",
     "DatabaseName": "resume_assistant",
-    "Local": {
-      "ConnectionString": "mongodb://localhost:27017"
-    },
     "Cloud": {
-      "ConnectionString": "mongodb+srv://<username>:<password>@cluster.mongodb.net/resume_assistant?retryWrites=true&w=majority"
+      "ConnectionString": "YOUR_MONGODB_ATLAS_CONNECTION_STRING"
     }
   },
   "Logto": {
     "Mode": "Cloud",
-    "Local": {
-      "Endpoint": "http://localhost:3001",
-      "AppId": "local_spa_app_id",
-      "M2MAppId": "local_m2m_app_id",
-      "M2MAppSecret": "local_m2m_app_secret",
-      "ApiResource": "https://api.resumetwin.local",
-      "MagicLinkBaseUrl": "http://localhost:5173",
-      "SmtpHost": "localhost",
-      "SmtpPort": 2500
-    },
     "Cloud": {
       "Endpoint": "https://wc0dj0.logto.app",
       "AppId": "8s6tqou7bndvwp5zdtsbi",
       "M2MAppId": "YOUR_LOGTO_M2M_APP_ID",
       "M2MAppSecret": "YOUR_LOGTO_M2M_APP_SECRET",
       "ApiResource": "api://digital.twin",
-      "MagicLinkBaseUrl": "http://localhost:5173"
+      "MagicLinkBaseUrl": "https://anktsrkr.github.io/digital-twin-ui"
     }
   },
   "CalCom": {

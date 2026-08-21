@@ -1,0 +1,39 @@
+name: Deploy Backend to MonsterASP.NET
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'src/ResumeAssistant.Api/**'
+      - 'src/ResumeAssistant.Core/**'
+      - 'src/ResumeAssistant.Ingestion/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore ResumeAssistant.slnx
+
+      - name: Build and Publish
+        run: dotnet publish src/ResumeAssistant.Api/ResumeAssistant.Api.csproj -c Release -o ./publish
+
+      - name: Deploy to MonsterASP.NET via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER || 'site86558.siteasp.net' }}
+          username: ${{ secrets.FTP_USERNAME || 'site86558' }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /wwwroot/
+          local-dir: ./publish/
+          dangerous-clean-slate: false

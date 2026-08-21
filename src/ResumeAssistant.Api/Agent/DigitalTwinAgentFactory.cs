@@ -43,12 +43,13 @@ public static class DigitalTwinAgentFactory
                - NEVER address the user as "Ankit", NEVER refer to the calendar as "your calendar" or "your appointments", and NEVER say "who has scheduled with you". It is YOUR calendar and YOUR availability.
                - Even if the user asks "who is booked on my calendar" (with a typo), remember YOU are Ankit and the calendar is YOURS.
                - NEVER speak in the 3rd person about Ankit or act like a third-party bot/virtual assistant.
-            2. Grounding & Knowledge Search:
-               - When asked about specific past projects, architecture decisions, metrics, tech stacks, or career history, ALWAYS call `SearchResumeKnowledgeBase` with targeted keywords to retrieve verified details and source links.
+            2. Grounding & Knowledge Search — STRICT MANDATORY RULE:
+               - When asked about specific past projects, architecture decisions, metrics, zero downtime, peak trading, ASDA, Boots, NMBS, tech stacks, or career history, you MUST ALWAYS FIRST call `SearchResumeKnowledgeBase` with targeted search keywords (e.g. "ASDA zero downtime peak trading 90k") to retrieve verified deep-dive architecture case studies before producing your answer.
+               - NEVER answer directly from the system prompt summary without first retrieving deep-dive knowledge via `SearchResumeKnowledgeBase`.
                - Ground technical/career answers strictly in the retrieved context. Include interactive markdown citations with source anchors (e.g. "[Work Experience: ASDA eCommerce Platform](#experience-asda)").
                - NEVER call `SearchResumeKnowledgeBase` for scheduling, calendar, availability, privacy, or booking requests.
             3. Action Tool Calling — STRICT ENFORCEMENT:
-               - AVAILABILITY & SCHEDULING: Any question or request about my open availability, free times, open slots, calendar, or interview/screening scheduling → ALWAYS call ONLY `GetAvailableInterviewSlots`. NEVER call `SearchResumeKnowledgeBase` together with it. NEVER list, repeat, or summarize time slots in text or markdown tables. The interactive calendar card will display all available slots automatically. Your text response must be exactly 1 brief sentence (e.g. "I've loaded my real-time calendar availability below — pick any open slot that works for you!").
+               - AVAILABILITY & SCHEDULING: Any question or request about my open availability, free times, open slots, calendar, or interview/screening scheduling → ALWAYS call ONLY `GetAvailableInterviewSlots` (pass durationInMinutes: 15 for quick intro, 30 for screening, 60 for deep dive/system design; default to 30). NEVER call `SearchResumeKnowledgeBase` together with it. NEVER list, repeat, or summarize time slots in text or markdown tables. The interactive calendar card will display all available slots automatically and allow switching between 15m, 30m, and 60m formats. Your text response must be exactly 1 brief sentence (e.g. "I've loaded my real-time calendar availability below — choose any open slot or switch between 15m, 30m, and 60m formats!").
                - BOOKING CONFIRMATION: When the recruiter provides their name + email + time/slot → IMMEDIATELY call `BookInterviewSlot`. Do NOT call `SearchResumeKnowledgeBase`. Do NOT write a prose confirmation, do NOT summarize the booking details in chat. The frontend Generative UI card will display all booking details. After calling `BookInterviewSlot`, your text response must be 1 brief sentence maximum (e.g. "Your interview is confirmed — check the card below for the video link!").
                - RESUME/CV: Questions about my resume, CV, PDF, LinkedIn, GitHub → call `ShowDownloadResumeCard`. 1 sentence max.
                - STRICT CALENDAR PRIVACY & ATTENDEE DATA:
@@ -66,8 +67,10 @@ public static class DigitalTwinAgentFactory
 
     public static IChatClient CreateAgent(
         IChatClient baseChatClient,
-        SupabaseRagSearcher ragSearcher,
+        MongoDbRagSearcher ragSearcher,
         ICalComService calComService,
+        MongoDbChatHistoryProvider historyProvider,
+        IHttpContextAccessor httpContextAccessor,
         VoyageAiOptions voyageOptions,
         IVoyageReranker? voyageReranker,
         ILoggerFactory loggerFactory)
@@ -79,7 +82,7 @@ public static class DigitalTwinAgentFactory
         var searchResumeTool = AIFunctionFactory.Create(
             knowledgeTools.SearchResumeKnowledgeBase,
             "SearchResumeKnowledgeBase",
-            "Searches Ankit Sarkar's verified resume, deep-dive architecture case studies, and career history. Do NOT call this tool for scheduling, booking, calendar, or availability questions.");
+            "MANDATORY: Searches Ankit Sarkar's verified resume, deep-dive architecture case studies, metrics, and career history. You MUST call this tool for ANY question about past projects, architecture, ASDA, Boots, NMBS, technologies, or experience. Do NOT call this tool for scheduling, booking, calendar, or availability questions.");
 
         // 2. Configure Generative UI & Calendar Tools
         var downloadResumeTool = AIFunctionFactory.Create(
@@ -99,7 +102,7 @@ public static class DigitalTwinAgentFactory
             "BookInterviewSlot",
             "Directly books a confirmed interview with Ankit Sarkar at the requested duration via Cal.com and dispatches a Google Meet calendar invite once attendee details are provided.");
 
-        // 3. Compose Chat Client with System Prompt, OpenTelemetry, Tool Calling & Function Invocation
+        // 3. Compose Chat Client: SystemPrompt -> OpenTelemetry -> Tools -> FunctionInvocation -> Outer Persistence
         return baseChatClient
             .AsBuilder()
             .Use((inner) => new DigitalTwinSystemPromptChatClient(inner))
@@ -115,6 +118,7 @@ public static class DigitalTwinAgentFactory
                 options.Tools.Add(bookInterviewTool);
             })
             .UseFunctionInvocation(configure: fic => fic.TerminateOnUnknownCalls = false)
+            .Use((inner) => new DigitalTwinPersistenceChatClient(inner, historyProvider, httpContextAccessor, logger))
             .Build();
     }
 }

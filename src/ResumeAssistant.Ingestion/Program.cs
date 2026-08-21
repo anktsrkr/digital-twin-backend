@@ -2,8 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
-using Pgvector;
+using MongoDB.Driver;
 using ResumeAssistant.Core.Models;
 using ResumeAssistant.Core.Services;
 using ResumeAssistant.Ingestion.Services;
@@ -30,12 +29,12 @@ public class Program
         string jinaModel = configuration["JinaAI:Model"] ?? "jina-embeddings-v3";
         string? voyageApiKey = configuration["VOYAGE_API_KEY"] ?? configuration["VoyageAI:ApiKey"];
         string voyageModel = configuration["VoyageAI:Model"] ?? "voyage-3-lite";
-        string supabaseMode = configuration["SUPABASE_MODE"] ?? configuration["Supabase:Mode"] ?? "Local";
-        string? connectionString = configuration["SUPABASE_DB_CONNECTION_STRING"]
-            ?? configuration["Supabase:ConnectionString"]
-            ?? (string.Equals(supabaseMode, "Cloud", StringComparison.OrdinalIgnoreCase)
-                ? configuration["Supabase:Cloud:ConnectionString"]
-                : configuration["Supabase:Local:ConnectionString"]);
+        string mongoDbMode = configuration["MONGODB_MODE"] ?? configuration["MongoDB:Mode"] ?? "Local";
+        string databaseName = configuration["MONGODB_DATABASE"] ?? configuration["MongoDB:DatabaseName"] ?? "resume_assistant";
+        string? connectionString = configuration["MONGODB_CONNECTION_STRING"]
+            ?? (string.Equals(mongoDbMode, "Cloud", StringComparison.OrdinalIgnoreCase)
+                ? configuration["MongoDB:Cloud:ConnectionString"]
+                : configuration["MongoDB:Local:ConnectionString"]);
 
         bool isJinaConfigured = !string.IsNullOrWhiteSpace(jinaApiKey) && !jinaApiKey.StartsWith("YOUR_");
         bool isVoyageConfigured = !string.IsNullOrWhiteSpace(voyageApiKey) && !voyageApiKey.StartsWith("YOUR_");
@@ -44,7 +43,7 @@ public class Program
 
         string activeProvider = useJina ? $"Jina AI ({jinaModel})" : $"Voyage AI ({voyageModel})";
         Console.WriteLine($"⚙️  Embedding Provider: {activeProvider}");
-        Console.WriteLine($"⚙️  Supabase Database Target: {supabaseMode}");
+        Console.WriteLine($"⚙️  MongoDB Target: {mongoDbMode} (Database: {databaseName})");
 
         if (!isJinaConfigured && !isVoyageConfigured)
         {
@@ -168,7 +167,7 @@ public class Program
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("✅ Dry-run validation successful! All Markdown files, YAML frontmatter, and semantic chunks parsed perfectly.");
-            Console.WriteLine("   To seed live embeddings to Supabase pgvector, provide valid API credentials and re-run.\n");
+            Console.WriteLine("   To seed live embeddings to MongoDB, provide valid API credentials and re-run.\n");
             Console.ResetColor();
             return;
         }
@@ -191,91 +190,58 @@ public class Program
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(connectionString) || connectionString.StartsWith("Host=aws-0-us-east-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.your-ref"))
+        if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("YOUR_ATLAS_USER"))
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("ℹ️  Embeddings API is verified and working perfectly!");
-            Console.WriteLine("   To write to pgvector, set SUPABASE_DB_CONNECTION_STRING with your active database credentials.");
+            Console.WriteLine("   To write to MongoDB, set MONGODB_CONNECTION_STRING with your active MongoDB credentials.");
             Console.ResetColor();
             return;
         }
 
-        Console.WriteLine("💾 Connecting to Supabase database...");
+        Console.WriteLine("💾 Connecting to MongoDB database...");
 
-        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
-        dataSourceBuilder.UseVector();
-        await using var dataSource = dataSourceBuilder.Build();
-        await using var conn = await dataSource.OpenConnectionAsync();
+        var client = new MongoClient(connectionString);
+        var database = client.GetDatabase(databaseName);
+        var collection = database.GetCollection<ResumeChunk>("resume_chunks");
 
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"   ✓ Successfully connected to Supabase PostgreSQL database via [{new NpgsqlConnectionStringBuilder(connectionString).Host}]!\n");
+        Console.WriteLine($"   ✓ Successfully connected to MongoDB [{databaseName}]!\n");
         Console.ResetColor();
 
-        // Ensure schema and tables exist before seeding
-        string[] searchPaths = [
-            Path.Combine(Directory.GetCurrentDirectory(), "database", "supabase_cloud_migration.sql"),
-            Path.Combine(AppContext.BaseDirectory, "database", "supabase_cloud_migration.sql"),
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "database", "supabase_cloud_migration.sql")
-        ];
-
-        string? migrationPath = searchPaths.FirstOrDefault(File.Exists);
-        if (migrationPath is not null)
+        // Ensure indexes exist
+        Console.WriteLine("📜 Creating BSON indexes on `category` and `company`...");
+        try
         {
-            Console.WriteLine("📜 Provisioning database schema, pgvector extension & RPC functions...");
-            try
-            {
-                var migrationSql = await File.ReadAllTextAsync(migrationPath);
-                await using var schemaCmd = new NpgsqlCommand(migrationSql, conn);
-                await schemaCmd.ExecuteNonQueryAsync();
-                Console.WriteLine("   ✓ Database schema, pgvector extension, and vector search RPC functions are verified and ready!\n");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"   ⚠️ Note during schema provision: {ex.Message}");
-            }
+            var categoryIndex = new CreateIndexModel<ResumeChunk>(Builders<ResumeChunk>.IndexKeys.Ascending(c => c.Category));
+            var companyIndex = new CreateIndexModel<ResumeChunk>(Builders<ResumeChunk>.IndexKeys.Ascending(c => c.Company));
+            await collection.Indexes.CreateManyAsync([categoryIndex, companyIndex]);
+            Console.WriteLine("   ✓ Indexes created successfully.\n");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"   ⚠️ Index creation note: {ex.Message}");
         }
 
         // Clean reseed: remove previous chunks so re-runs don't create stale duplicate vectors
-        await using (var truncateCmd = new NpgsqlCommand("TRUNCATE TABLE public.resume_chunks;", conn))
-        {
-            await truncateCmd.ExecuteNonQueryAsync();
-            Console.WriteLine("   ✓ Cleared existing records in `resume_chunks` for a clean re-seed.");
-        }
-
-        const string sql = @"
-            INSERT INTO public.resume_chunks 
-            (title, category, company, role, start_date, end_date, content, source_name, source_link, technologies, embedding, updated_at)
-            VALUES 
-            (@title, @category, @company, @role, @start_date, @end_date, @content, @source_name, @source_link, @technologies, @embedding::vector, NOW())";
+        await collection.DeleteManyAsync(Builders<ResumeChunk>.Filter.Empty);
+        Console.WriteLine("   ✓ Cleared existing records in `resume_chunks` for a clean re-seed.\n");
 
         int successCount = 0;
         foreach (var chunk in chunks)
         {
             string contextText = chunk.ToContextString();
             var embeddings = await embeddingGenerator.GenerateAsync([contextText]);
-            var embeddingVector = embeddings[0].Vector.ToArray();
-            string vectorString = $"[{string.Join(",", embeddingVector.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture)))}]";
+            chunk.Embedding = embeddings[0].Vector.ToArray();
+            chunk.UpdatedAt = DateTime.UtcNow;
 
-            await using var cmd = new NpgsqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("title", chunk.Title);
-            cmd.Parameters.AddWithValue("category", chunk.Category);
-            cmd.Parameters.AddWithValue("company", (object?)chunk.Company ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("role", (object?)chunk.Role ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("start_date", (object?)chunk.StartDate ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("end_date", (object?)chunk.EndDate ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("content", chunk.Content);
-            cmd.Parameters.AddWithValue("source_name", chunk.SourceName);
-            cmd.Parameters.AddWithValue("source_link", (object?)chunk.SourceLink ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("technologies", chunk.Technologies);
-            cmd.Parameters.AddWithValue("embedding", vectorString);
-
-            await cmd.ExecuteNonQueryAsync();
+            await collection.InsertOneAsync(chunk);
             successCount++;
             Console.WriteLine($"   ✓ Seeded: {chunk.Title}");
         }
 
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"\n🎉 Success! Seeded {successCount} chunks with 1024-dim {activeProvider} embeddings into Supabase pgvector.\n");
+        Console.WriteLine($"\n🎉 Success! Seeded {successCount} chunks with 1024-dim {activeProvider} embeddings into MongoDB collection `resume_chunks`.\n");
         Console.ResetColor();
     }
 }

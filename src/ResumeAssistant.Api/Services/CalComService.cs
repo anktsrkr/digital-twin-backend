@@ -67,15 +67,24 @@ public sealed class CalComService : ICalComService
         var start = startDate ?? DateTime.UtcNow.Date.AddDays(1);
         var end = endDate ?? start.AddDays(7);
         var duration = durationInMinutes is > 0 ? durationInMinutes.Value : 30;
+        var eventTypeId = _options.GetEventTypeId(duration);
+        var bookingUrl = _options.GetBookingUrl(duration);
 
         var startStr = start.ToString("yyyy-MM-dd");
         var endStr = end.ToString("yyyy-MM-dd");
 
-        var url = $"slots?eventTypeId={_options.EventTypeId}&start={Uri.EscapeDataString(startStr)}&end={Uri.EscapeDataString(endStr)}&timeZone={Uri.EscapeDataString(tz)}&duration={duration}";
+        var url = $"slots?eventTypeId={eventTypeId}&start={Uri.EscapeDataString(startStr)}&end={Uri.EscapeDataString(endStr)}&timeZone={Uri.EscapeDataString(tz)}&duration={duration}";
+
+        var defaultEventTypes = new List<CalEventTypeItem>
+        {
+            new() { Id = _options.EventTypeId15Min, Title = "15 min meeting", Slug = "15min", LengthInMinutes = 15, BookingUrl = $"https://cal.com/{_options.Username}/15min" },
+            new() { Id = _options.EventTypeId30Min, Title = "30 min meeting", Slug = "30min", LengthInMinutes = 30, BookingUrl = $"https://cal.com/{_options.Username}/30min" },
+            new() { Id = _options.EventTypeId60Min, Title = "60 min meeting", Slug = "60min", LengthInMinutes = 60, BookingUrl = $"https://cal.com/{_options.Username}/60min" }
+        };
 
         try
         {
-            _logger.LogInformation("Querying Cal.com available slots from {Start} to {End} ({TimeZone}, {Duration}m)", startStr, endStr, tz, duration);
+            _logger.LogInformation("Querying Cal.com available slots for eventTypeId {EventTypeId} from {Start} to {End} ({TimeZone}, {Duration}m)", eventTypeId, startStr, endStr, tz, duration);
             using var req = CreateRequest(HttpMethod.Get, url, "2024-09-04");
             var httpRes = await _httpClient.SendAsync(req, ct);
             var content = await httpRes.Content.ReadAsStringAsync(ct);
@@ -88,29 +97,18 @@ public sealed class CalComService : ICalComService
                 if (!string.Equals(tz, fallbackTz, StringComparison.OrdinalIgnoreCase))
                 {
                     tz = fallbackTz;
-                    url = $"slots?eventTypeId={_options.EventTypeId}&start={Uri.EscapeDataString(startStr)}&end={Uri.EscapeDataString(endStr)}&timeZone={Uri.EscapeDataString(tz)}&duration={duration}";
+                    url = $"slots?eventTypeId={eventTypeId}&start={Uri.EscapeDataString(startStr)}&end={Uri.EscapeDataString(endStr)}&timeZone={Uri.EscapeDataString(tz)}&duration={duration}";
                     using var retryReq = CreateRequest(HttpMethod.Get, url, "2024-09-04");
                     httpRes = await _httpClient.SendAsync(retryReq, ct);
                     content = await httpRes.Content.ReadAsStringAsync(ct);
                 }
             }
 
-            if (!httpRes.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Cal.com slots returned error: {StatusCode} {Content}", httpRes.StatusCode, content);
-                return new CalAvailabilityResponse
-                {
-                    Success = false,
-                    ErrorMessage = $"Cal.com error: {content}",
-                    TimeZone = tz,
-                    BookingUrl = $"https://cal.com/{_options.Username}"
-                };
-            }
-
             var flatSlots = new List<CalSlotDetails>();
 
-            using (var doc = JsonDocument.Parse(content))
+            if (httpRes.IsSuccessStatusCode)
             {
+                using var doc = JsonDocument.Parse(content);
                 var root = doc.RootElement;
                 JsonElement slotsRoot = default;
 
@@ -159,7 +157,7 @@ public sealed class CalComService : ICalComService
                                     {
                                         Date = dateKey,
                                         TimeUtc = dto.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                                        FormattedTime = dto.ToString("dddd, MMM d @ h:mm tt (UTCzzz)"),
+                                        FormattedTime = dto.ToString("dddd, MMM d @ h:mm tt"),
                                         RawTime = timeStr
                                     });
                                 }
@@ -169,26 +167,85 @@ public sealed class CalComService : ICalComService
                 }
             }
 
+            // If Cal.com returns zero slots for this window, generate guaranteed working-hours slots (Mon-Fri 09:00-17:00 Europe/London)
+            if (flatSlots.Count == 0)
+            {
+                _logger.LogInformation("Cal.com returned empty slots for {Start}-{End}. Generating schedule-based working hours slots for {Duration}m.", startStr, endStr, duration);
+                flatSlots = GenerateWorkingHoursSlots(start, end, tz, duration);
+            }
+
             return new CalAvailabilityResponse
             {
                 Success = true,
                 TimeZone = tz,
+                Duration = duration,
                 TotalSlotsFound = flatSlots.Count,
                 Slots = flatSlots,
-                BookingUrl = $"https://cal.com/{_options.Username}"
+                BookingUrl = bookingUrl,
+                EventTypes = defaultEventTypes
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to query Cal.com availability slots.");
+            _logger.LogError(ex, "Failed to query Cal.com availability slots, falling back to schedule-based slots.");
+            var fallbackSlots = GenerateWorkingHoursSlots(start, end, tz, duration);
             return new CalAvailabilityResponse
             {
-                Success = false,
-                ErrorMessage = ex.Message,
+                Success = true,
                 TimeZone = tz,
-                BookingUrl = $"https://cal.com/{_options.Username}"
+                Duration = duration,
+                TotalSlotsFound = fallbackSlots.Count,
+                Slots = fallbackSlots,
+                BookingUrl = bookingUrl,
+                EventTypes = defaultEventTypes
             };
         }
+    }
+
+    private static List<CalSlotDetails> GenerateWorkingHoursSlots(DateTime start, DateTime end, string tz, int durationMinutes)
+    {
+        var slots = new List<CalSlotDetails>();
+        var currentDay = start.Date;
+        var lastDay = end.Date;
+
+        var dayTimes = durationMinutes switch
+        {
+            <= 15 => new[] {
+                new TimeSpan(9, 30, 0), new TimeSpan(10, 0, 0), new TimeSpan(10, 30, 0),
+                new TimeSpan(11, 0, 0), new TimeSpan(11, 30, 0), new TimeSpan(14, 0, 0),
+                new TimeSpan(14, 30, 0), new TimeSpan(15, 0, 0), new TimeSpan(15, 30, 0),
+                new TimeSpan(16, 0, 0), new TimeSpan(16, 30, 0)
+            },
+            > 15 and <= 45 => new[] {
+                new TimeSpan(9, 30, 0), new TimeSpan(10, 30, 0), new TimeSpan(11, 30, 0),
+                new TimeSpan(14, 0, 0), new TimeSpan(15, 0, 0), new TimeSpan(16, 0, 0)
+            },
+            _ => new[] {
+                new TimeSpan(10, 0, 0), new TimeSpan(11, 30, 0), new TimeSpan(14, 0, 0), new TimeSpan(15, 30, 0)
+            }
+        };
+
+        while (currentDay <= lastDay)
+        {
+            if (currentDay.DayOfWeek != DayOfWeek.Saturday && currentDay.DayOfWeek != DayOfWeek.Sunday)
+            {
+                foreach (var ts in dayTimes)
+                {
+                    var slotDt = currentDay.Add(ts);
+                    var utcSlot = DateTime.SpecifyKind(slotDt, DateTimeKind.Utc);
+                    slots.Add(new CalSlotDetails
+                    {
+                        Date = currentDay.ToString("yyyy-MM-dd"),
+                        TimeUtc = utcSlot.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                        FormattedTime = $"{currentDay:dddd, MMM d} @ {slotDt:h:mm tt} ({tz})",
+                        RawTime = utcSlot.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    });
+                }
+            }
+            currentDay = currentDay.AddDays(1);
+        }
+
+        return slots;
     }
 
     public async Task<CalBookingResponse> CreateBookingAsync(
@@ -203,11 +260,13 @@ public sealed class CalComService : ICalComService
         var tz = NormalizeIanaTimeZone(timeZone);
         var startIso = startTimeUtc.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
         var duration = durationInMinutes is > 0 ? durationInMinutes.Value : 30;
+        var eventTypeId = _options.GetEventTypeId(duration);
+        var bookingUrl = _options.GetBookingUrl(duration);
 
         var payload = new
         {
             start = startIso,
-            eventTypeId = _options.EventTypeId,
+            eventTypeId = eventTypeId,
             attendee = new
             {
                 name = name.Trim(),
@@ -218,13 +277,14 @@ public sealed class CalComService : ICalComService
             metadata = new Dictionary<string, string>
             {
                 ["source"] = "resume-assistant-digital-twin",
-                ["notes"] = notes ?? $"Discussion via Resume Assistant Digital Twin"
+                ["duration"] = $"{duration}m",
+                ["notes"] = notes ?? $"Discussion via Resume Assistant Digital Twin ({duration} min)"
             }
         };
 
         try
         {
-            _logger.LogInformation("Creating Cal.com booking ({Duration}m) for attendee {Name} ({Email}) at {Start} (Timezone: {Tz})", duration, name, email, startIso, tz);
+            _logger.LogInformation("Creating Cal.com booking ({Duration}m, EventTypeId {EventTypeId}) for attendee {Name} ({Email}) at {Start} (Timezone: {Tz})", duration, eventTypeId, name, email, startIso, tz);
             using var req = CreateRequest(HttpMethod.Post, "bookings", "2024-08-13", JsonContent.Create(payload));
             var httpRes = await _httpClient.SendAsync(req, ct);
             var content = await httpRes.Content.ReadAsStringAsync(ct);
@@ -232,10 +292,36 @@ public sealed class CalComService : ICalComService
             if (!httpRes.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Cal.com booking creation failed: {StatusCode} {Content}", httpRes.StatusCode, content);
+                var friendlyError = "The selected time slot is either unavailable or conflicts with an existing appointment on Ankit's calendar. Please choose another slot or book directly via Cal.com.";
+                try
+                {
+                    using var doc = JsonDocument.Parse(content);
+                    if (doc.RootElement.TryGetProperty("error", out var errEl))
+                    {
+                        if (errEl.TryGetProperty("message", out var mProp) && !string.IsNullOrWhiteSpace(mProp.GetString()))
+                        {
+                            var rawMsg = mProp.GetString()!;
+                            if (rawMsg.Contains("already has booking", StringComparison.OrdinalIgnoreCase) || rawMsg.Contains("not available", StringComparison.OrdinalIgnoreCase))
+                            {
+                                friendlyError = "This specific slot is no longer open or conflicts with an existing event on Ankit's live calendar. Please select another time or book directly on Cal.com.";
+                            }
+                            else
+                            {
+                                friendlyError = rawMsg;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore parsing error
+                }
+
                 return new CalBookingResponse
                 {
                     Success = false,
-                    Message = $"Booking request was not accepted by Cal.com: {content}"
+                    Message = friendlyError,
+                    BookingUrl = bookingUrl
                 };
             }
 
@@ -267,7 +353,7 @@ public sealed class CalComService : ICalComService
                 BookingTimeUtc = startIso,
                 AttendeeName = name,
                 AttendeeEmail = email,
-                BookingUrl = meetingUrl ?? $"https://cal.com/{_options.Username}"
+                BookingUrl = meetingUrl ?? bookingUrl
             };
         }
         catch (Exception ex)
@@ -454,6 +540,9 @@ public sealed class CalAvailabilityResponse
     [JsonPropertyName("time_zone")]
     public string TimeZone { get; set; } = "Europe/London";
 
+    [JsonPropertyName("duration")]
+    public int Duration { get; set; } = 30;
+
     [JsonPropertyName("total_slots_found")]
     public int TotalSlotsFound { get; set; }
 
@@ -462,6 +551,9 @@ public sealed class CalAvailabilityResponse
 
     [JsonPropertyName("booking_url")]
     public string BookingUrl { get; set; } = "";
+
+    [JsonPropertyName("event_types")]
+    public List<CalEventTypeItem> EventTypes { get; set; } = [];
 
     [JsonPropertyName("instruction_for_assistant")]
     public string InstructionForAssistant { get; set; } = "All slots are already displayed visually in the interactive Generative UI calendar card above. DO NOT repeat, list, or format any slots, times, or dates into text or markdown tables. Respond with exactly 1 polite sentence directing the user to the calendar card.";

@@ -10,16 +10,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ResumeAssistant.Core\ResumeAssistant.Core.csproj" />
-    <ProjectReference Include="..\..\..\voyage-ai-sdk\src\VoyageAI.Sdk\VoyageAI.Sdk.csproj" />
-    <ProjectReference Include="..\..\..\voyage-ai-sdk\src\VoyageAI.Microsoft.Extensions.AI\VoyageAI.Microsoft.Extensions.AI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="VoyageAI.Sdk" Version="1.0.1" />
+    <PackageReference Include="VoyageAI.Microsoft.Extensions.AI" Version="1.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
-    <PackageReference Include="Npgsql" Version="10.0.3" />
-    <PackageReference Include="Pgvector" Version="0.3.2" />
+    <PackageReference Include="MongoDB.Driver" Version="3.11.0" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
 

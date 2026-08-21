@@ -177,38 +177,34 @@ public sealed class JinaAiOptions
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey) && !ApiKey.StartsWith("YOUR_");
 }
 
-public sealed class SupabaseOptions
+public sealed class MongoDbOptions
 {
-    public const string SectionName = "Supabase";
+    public const string SectionName = "MongoDB";
 
     /// <summary>
-    /// Operating mode: "Local" (Docker Compose pgvector + GoTrue) or "Cloud" (Hosted Supabase Project).
+    /// Operating mode: "Local" (Docker Compose MongoDB) or "Cloud" (MongoDB Atlas).
     /// </summary>
     public string Mode { get; set; } = "Local";
 
-    public LocalSupabaseOptions Local { get; set; } = new();
-    public CloudSupabaseOptions Cloud { get; set; } = new();
+    public LocalMongoDbOptions Local { get; set; } = new();
+    public CloudMongoDbOptions Cloud { get; set; } = new();
+    public string DatabaseName { get; set; } = "resume_assistant";
 
     public bool IsLocal => string.Equals(Mode, "Local", StringComparison.OrdinalIgnoreCase);
     public bool IsCloud => string.Equals(Mode, "Cloud", StringComparison.OrdinalIgnoreCase);
 
-    public string GetResolvedUrl() => IsCloud ? (Cloud.Url ?? "https://your-project.supabase.co") : Local.Url;
-    public string? GetResolvedAnonKey() => IsCloud ? Cloud.AnonKey : Local.AnonKey;
     public string GetResolvedConnectionString() => IsCloud ? (Cloud.ConnectionString ?? "") : Local.ConnectionString;
+    public string GetResolvedDatabaseName() => !string.IsNullOrWhiteSpace(DatabaseName) ? DatabaseName : "resume_assistant";
 }
 
-public sealed class LocalSupabaseOptions
+public sealed class LocalMongoDbOptions
 {
-    public string Url { get; set; } = "http://localhost:9999";
-    public string AnonKey { get; set; } = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.local-anon-token";
-    public string ConnectionString { get; set; } = "Host=localhost;Port=5432;Database=resume_assistant;Username=postgres;Password=postgres;SSL Mode=Disable;Trust Server Certificate=true";
+    public string ConnectionString { get; set; } = "mongodb://localhost:27017";
 }
 
-public sealed class CloudSupabaseOptions
+public sealed class CloudMongoDbOptions
 {
-    public string? Url { get; set; } = "https://your-project.supabase.co";
-    public string? AnonKey { get; set; } = "your-anon-key";
-    public string? ConnectionString { get; set; } = "Host=aws-0-us-east-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.your-ref;Password=your-password;SSL Mode=Require;Trust Server Certificate=true";
+    public string? ConnectionString { get; set; } = "mongodb+srv://<username>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority";
 }
 
 public sealed class LogtoOptions

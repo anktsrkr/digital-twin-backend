@@ -3,21 +3,21 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using AGUI.Samples.Shared;
 using AGUI.Server;
+using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
 using Microsoft.Extensions.AI;
-using Npgsql;
+using MongoDB.Driver;
 using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Pgvector.Npgsql;
 using ResumeAssistant.Api.Agent;
 using ResumeAssistant.Api.Configuration;
 using ResumeAssistant.Api.Services;
 using ResumeAssistant.Api.Telemetry;
 using ResumeAssistant.Core.Interfaces;
+using ResumeAssistant.Core.Models;
 using ResumeAssistant.Core.Services;
 using VoyageAI;
 
@@ -30,7 +30,7 @@ var followUpLlmOptions = builder.Configuration.GetSection(FollowUpLlmOptions.Sec
 var embeddingOptions = builder.Configuration.GetSection(EmbeddingOptions.SectionName).Get<EmbeddingOptions>() ?? new EmbeddingOptions();
 var jinaOptions = builder.Configuration.GetSection(JinaAiOptions.SectionName).Get<JinaAiOptions>() ?? new JinaAiOptions();
 var voyageOptions = builder.Configuration.GetSection(VoyageAiOptions.SectionName).Get<VoyageAiOptions>() ?? new VoyageAiOptions();
-var supabaseOptions = builder.Configuration.GetSection(SupabaseOptions.SectionName).Get<SupabaseOptions>() ?? new SupabaseOptions();
+var mongoOptions = builder.Configuration.GetSection(MongoDbOptions.SectionName).Get<MongoDbOptions>() ?? new MongoDbOptions();
 var logtoOptions = builder.Configuration.GetSection(LogtoOptions.SectionName).Get<LogtoOptions>() ?? new LogtoOptions();
 var calComOptions = builder.Configuration.GetSection(CalComOptions.SectionName).Get<CalComOptions>() ?? new CalComOptions();
 
@@ -46,6 +46,7 @@ if (builder.Configuration["LOCAL_LLM_ENDPOINT"] is { } localEndpoint) llmOptions
 if (builder.Configuration["LOCAL_LLM_MODEL"] is { } localModel) llmOptions.Local.Model = localModel;
 if (builder.Configuration["CLOUDFLARE_API_TOKEN"] is { } cfToken) llmOptions.Cloud.ApiToken = cfToken;
 if (builder.Configuration["CLOUDFLARE_ACCOUNT_ID"] is { } cfAccount) llmOptions.Cloud.AccountId = cfAccount;
+if (builder.Configuration["CLOUDFLARE_MODEL"] is { } cfModel) llmOptions.Cloud.Model = cfModel;
 
 if (builder.Configuration["FOLLOWUP_LLM_MODE"] is { } fMode) followUpLlmOptions.Mode = fMode;
 if (builder.Configuration["FOLLOWUP_LOCAL_LLM_ENDPOINT"] is { } fLocalEndpoint) followUpLlmOptions.Local.Endpoint = fLocalEndpoint;
@@ -58,10 +59,9 @@ if (builder.Configuration["EMBEDDING_PROVIDER"] is { } embProv) embeddingOptions
 if (builder.Configuration["JINA_API_KEY"] is { } jKey) jinaOptions.ApiKey = jKey;
 if (builder.Configuration["VOYAGE_API_KEY"] is { } vKey) voyageOptions.ApiKey = vKey;
 
-if (builder.Configuration["SUPABASE_MODE"] is { } sMode) supabaseOptions.Mode = sMode;
-if (builder.Configuration["SUPABASE_URL"] is { } sUrl) { if (supabaseOptions.IsCloud) supabaseOptions.Cloud.Url = sUrl; else supabaseOptions.Local.Url = sUrl; }
-if (builder.Configuration["SUPABASE_ANON_KEY"] is { } sKey) { if (supabaseOptions.IsCloud) supabaseOptions.Cloud.AnonKey = sKey; else supabaseOptions.Local.AnonKey = sKey; }
-if (builder.Configuration["SUPABASE_DB_CONNECTION_STRING"] is { } sConn) { if (supabaseOptions.IsCloud) supabaseOptions.Cloud.ConnectionString = sConn; else supabaseOptions.Local.ConnectionString = sConn; }
+if (builder.Configuration["MONGODB_MODE"] is { } mMode) mongoOptions.Mode = mMode;
+if (builder.Configuration["MONGODB_CONNECTION_STRING"] is { } mConn) { if (mongoOptions.IsCloud) mongoOptions.Cloud.ConnectionString = mConn; else mongoOptions.Local.ConnectionString = mConn; }
+if (builder.Configuration["MONGODB_DATABASE"] is { } mDb) mongoOptions.DatabaseName = mDb;
 
 if (builder.Configuration["LOGTO_MODE"] is { } lgMode) logtoOptions.Mode = lgMode;
 if (builder.Configuration["LOGTO_ENDPOINT"] is { } lgEndpoint) { if (logtoOptions.IsCloud) logtoOptions.Cloud.Endpoint = lgEndpoint; else logtoOptions.Local.Endpoint = lgEndpoint; }
@@ -83,7 +83,7 @@ builder.Services.AddSingleton(followUpLlmOptions);
 builder.Services.AddSingleton(embeddingOptions);
 builder.Services.AddSingleton(jinaOptions);
 builder.Services.AddSingleton(voyageOptions);
-builder.Services.AddSingleton(supabaseOptions);
+builder.Services.AddSingleton(mongoOptions);
 builder.Services.AddSingleton(logtoOptions);
 builder.Services.AddSingleton(calComOptions);
 builder.Services.AddSingleton<IFollowUpAgent, FollowUpAgent>();
@@ -178,6 +178,7 @@ if (!telemetryOptions.IsDisabled && !string.IsNullOrWhiteSpace(targetOtlpBase))
 }
 
 // 3. Add Core Services & AG-UI
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -233,7 +234,6 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Add(DigitalTwinJsonSerializerContext.Default);
     options.SerializerOptions.TypeInfoResolverChain.Add(new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver());
 });
-builder.Services.AddAGUI();
 builder.Services.AddSingleton<IDisposableEmailValidator, DisposableEmailValidator>();
 builder.Services.AddHttpClient<ILogtoManagementService, LogtoManagementService>(client =>
 {
@@ -249,6 +249,9 @@ builder.Services.AddCors(options =>
             origin.StartsWith("http://localhost:") ||
             origin.StartsWith("https://localhost:") ||
             origin.EndsWith(".github.io", StringComparison.OrdinalIgnoreCase) ||
+            origin.EndsWith(".siteasp.net", StringComparison.OrdinalIgnoreCase) ||
+            origin.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase) ||
+            origin.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase) ||
             origin.EndsWith(".snapdeploy.dev", StringComparison.OrdinalIgnoreCase) ||
             origin.EndsWith(".outplane.app", StringComparison.OrdinalIgnoreCase))
             .AllowAnyMethod()
@@ -258,16 +261,16 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 5. Configure Supabase PostgreSQL DataSource (Local vs Cloud)
-var activeConnectionString = supabaseOptions.GetResolvedConnectionString();
-if (!string.IsNullOrWhiteSpace(activeConnectionString))
+// 5. Configure MongoDB Client & Database (Local vs Atlas Cloud)
+var activeMongoConn = mongoOptions.GetResolvedConnectionString();
+if (!string.IsNullOrWhiteSpace(activeMongoConn))
 {
     try
     {
-        var dataSourceBuilder = new NpgsqlDataSourceBuilder(activeConnectionString);
-        dataSourceBuilder.UseVector();
-        var dataSource = dataSourceBuilder.Build();
-        builder.Services.AddSingleton(dataSource);
+        var mongoClient = new MongoClient(activeMongoConn);
+        var mongoDatabase = mongoClient.GetDatabase(mongoOptions.GetResolvedDatabaseName());
+        builder.Services.AddSingleton<IMongoClient>(mongoClient);
+        builder.Services.AddSingleton<IMongoDatabase>(mongoDatabase);
     }
     catch
     {
@@ -275,7 +278,7 @@ if (!string.IsNullOrWhiteSpace(activeConnectionString))
     }
 }
 
-// 6. Register Embedding Generator (Jina AI vs Voyage AI)
+// 6. Register Embedding Generator (Jina AI 1024-dim default vs Voyage AI)
 if (embeddingOptions.IsJina && jinaOptions.IsConfigured)
 {
     builder.Services.AddHttpClient("JinaAI", client =>
@@ -317,9 +320,9 @@ else
     });
 }
 
-// Register RAG Searcher, Audit Service & Cal.com Service
-builder.Services.AddSingleton<SupabaseRagSearcher>();
-builder.Services.AddSingleton<RecruiterAuditService>();
+// Register MongoDB RAG Searcher, Chat History Provider & Cal.com Service
+builder.Services.AddSingleton<MongoDbRagSearcher>();
+builder.Services.AddSingleton<MongoDbChatHistoryProvider>();
 
 builder.Services.AddHttpClient<ICalComService, CalComService>(client =>
 {
@@ -332,13 +335,15 @@ builder.Services.AddChatClient(sp =>
 {
     var l = sp.GetRequiredService<ILogger<Program>>();
     var lf = sp.GetRequiredService<ILoggerFactory>();
-    var rs = sp.GetRequiredService<SupabaseRagSearcher>();
+    var rs = sp.GetRequiredService<MongoDbRagSearcher>();
     var cs = sp.GetRequiredService<ICalComService>();
+    var hp = sp.GetRequiredService<MongoDbChatHistoryProvider>();
+    var hca = sp.GetRequiredService<IHttpContextAccessor>();
     var vo = sp.GetRequiredService<VoyageAiOptions>();
     var llmOpt = sp.GetRequiredService<LlmOptions>();
 
     IChatClient baseClient = LlmChatClientFactory.CreateChatClient(llmOpt, l);
-    return DigitalTwinAgentFactory.CreateAgent(baseClient, rs, cs, vo, null, lf);
+    return DigitalTwinAgentFactory.CreateAgent(baseClient, rs, cs, hp, hca, vo, null, lf);
 });
 
 var app = builder.Build();
@@ -365,8 +370,9 @@ app.MapGet("/api/health", () => Results.Ok(new
     followupLlmMode = followUpLlmOptions.Mode,
     followupLlmProvider = followUpLlmOptions.IsLocal ? $"LM Studio ({followUpLlmOptions.Local.Model})" : $"Cloudflare Workers AI ({followUpLlmOptions.Cloud.Model})",
     embeddingProvider = embeddingOptions.IsJina && jinaOptions.IsConfigured ? $"Jina AI ({jinaOptions.Model})" : $"Voyage AI ({voyageOptions.EmbeddingModel})",
-    supabaseMode = supabaseOptions.Mode,
-    supabaseUrl = supabaseOptions.GetResolvedUrl(),
+    mongoDbMode = mongoOptions.Mode,
+    mongoDbDatabase = mongoOptions.GetResolvedDatabaseName(),
+    threadPersistence = "MongoDB user_threads (Microsoft Agent Framework)",
     calComConfigured = calComOptions.IsConfigured,
     calComUser = calComOptions.Username,
     calComEventTypeId = calComOptions.EventTypeId,
@@ -431,7 +437,7 @@ static string SanitizeAguiRunInputJson(string rawJson)
     return rawJson;
 }
 
-// Middleware to bridge CopilotKit runtime envelope protocol with AG-UI endpoint and sanitize message history
+// Middleware to bridge CopilotKit runtime envelope protocol with AG-UI endpoint, sanitize message history, and persist user threads
 app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/agentic_chat") && HttpMethods.IsPost(context.Request.Method))
@@ -487,13 +493,24 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.MapGet("/", () => Results.Ok(new
+{
+    status = "healthy",
+    service = "ResumeAssistant.Api",
+    version = "1.0.0",
+    timestamp = DateTime.UtcNow
+})).AllowAnonymous();
+
 app.MapGet("/agentic_chat/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
 app.MapPost("/agentic_chat/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
 app.MapGet("/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
 app.MapPost("/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
 
+var chatClient = app.Services.GetRequiredService<IChatClient>();
+var agent = chatClient.AsAIAgent();
+
 // Map the AG-UI agent streaming endpoint with native ASP.NET Core Authorization
-app.MapAGUI("/agentic_chat").RequireAuthorization();
+app.MapAGUIServer("/agentic_chat", agent).RequireAuthorization();
 
 app.MapControllers();
 

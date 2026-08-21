@@ -9,6 +9,14 @@ obj/
 .idea/
 .vscode/
 
+# Sensitive Configuration & AppSettings
+appsettings.Development.json
+appsettings.Local.json
+appsettings.Production.json
+appsettings.secrets.json
+*.secrets.json
+secrets.json
+
 # Node / Frontend
 node_modules/
 dist/
@@ -18,7 +26,16 @@ dist-ssr/
 .eslintcache
 .stylelintcache
 
-# Logs & Environment
+# Environment variables & Secret Keys
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.cert
+
+# Logs & OS
 *.log
-.env.local
-.env.*.local
+.DS_Store
+Thumbs.db
