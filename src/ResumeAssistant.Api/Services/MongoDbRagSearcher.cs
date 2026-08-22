@@ -8,9 +8,9 @@ using VoyageAI;
 namespace ResumeAssistant.Api.Services;
 
 /// <summary>
-/// MongoDB vector searcher that implements <see cref="IVoyageRagSearcher{T}"/> for the Voyage / Agentic RAG pipeline.
+/// MongoDB vector searcher that implements <see cref="IVoyageRagSearcher{T}"/> for the Agentic RAG pipeline.
 /// Embeds queries with Jina AI (1024 dimensions) and executes MongoDB Atlas Vector Search ($vectorSearch)
-/// across the `resume_chunks` collection, with automatic regex keyword fallback.
+/// across the `resume_chunks` collection, with automatic in-memory vector ranking and keyword fallback.
 /// </summary>
 public sealed class MongoDbRagSearcher : IVoyageRagSearcher<ResumeChunk>
 {
@@ -26,6 +26,22 @@ public sealed class MongoDbRagSearcher : IVoyageRagSearcher<ResumeChunk>
         _embeddingGenerator = embeddingGenerator ?? throw new ArgumentNullException(nameof(embeddingGenerator));
         _database = database;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public const double MinRelevanceScoreThreshold = 0.65;
+
+    private static double ComputeCosineSimilarity(float[] vecA, float[] vecB)
+    {
+        if (vecA.Length != vecB.Length || vecA.Length == 0) return 0;
+        double dot = 0, magA = 0, magB = 0;
+        for (int i = 0; i < vecA.Length; i++)
+        {
+            dot += vecA[i] * vecB[i];
+            magA += vecA[i] * vecA[i];
+            magB += vecB[i] * vecB[i];
+        }
+        if (magA == 0 || magB == 0) return 0;
+        return dot / (Math.Sqrt(magA) * Math.Sqrt(magB));
     }
 
     public async Task<IReadOnlyList<VoyageSearchResult<ResumeChunk>>> SearchAsync(
@@ -44,6 +60,7 @@ public sealed class MongoDbRagSearcher : IVoyageRagSearcher<ResumeChunk>
         }
 
         var collection = _database.GetCollection<ResumeChunk>("resume_chunks");
+        float[]? queryVector = null;
 
         try
         {
@@ -62,10 +79,10 @@ public sealed class MongoDbRagSearcher : IVoyageRagSearcher<ResumeChunk>
 
             if (generatedEmbeddings.Count > 0)
             {
-                var queryVector = generatedEmbeddings[0].Vector.ToArray();
+                queryVector = generatedEmbeddings[0].Vector.ToArray();
                 var doubleVector = queryVector.Select(f => (double)f).ToArray();
 
-                // 2. Query MongoDB collection using $vectorSearch pipeline stage
+                // 2. Attempt MongoDB Atlas $vectorSearch pipeline stage
                 var pipeline = new BsonDocument[]
                 {
                     new BsonDocument("$vectorSearch", new BsonDocument
@@ -98,23 +115,75 @@ public sealed class MongoDbRagSearcher : IVoyageRagSearcher<ResumeChunk>
 
                 if (searchResults.Count > 0)
                 {
-                    _logger.LogInformation("Retrieved {Count} candidates from MongoDB vector search.", searchResults.Count);
-                    return searchResults
-                        .Select(chunk => new VoyageSearchResult<ResumeChunk>
-                        {
-                            Record = chunk,
-                            Text = chunk.ToContextString()
-                        })
+                    var relevantCandidates = searchResults
+                        .Where(c => (c.Score ?? 0) >= MinRelevanceScoreThreshold)
                         .ToList();
+
+                    if (relevantCandidates.Count > 0)
+                    {
+                        _logger.LogInformation("Retrieved {Count} relevant candidates (score >= {Threshold}) from MongoDB $vectorSearch for query '{Query}'.",
+                            relevantCandidates.Count, MinRelevanceScoreThreshold, query);
+
+                        return relevantCandidates
+                            .Select(chunk => new VoyageSearchResult<ResumeChunk>
+                            {
+                                Record = chunk,
+                                Text = chunk.ToContextString()
+                            })
+                            .ToList();
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "MongoDB $vectorSearch stage not available or still indexing for '{Query}'.", query);
+            _logger.LogWarning(ex, "MongoDB $vectorSearch stage not available or indexing for '{Query}'.", query);
         }
 
-        // 3. Robust Keyword Fallback if vector search returns 0 or throws
+        // 3. In-Memory Vector Search Fallback (computes exact cosine similarity across stored 1024-dim vectors)
+        if (queryVector is not null)
+        {
+            try
+            {
+                var storedChunks = await collection.Find(Builders<ResumeChunk>.Filter.Ne(c => c.Embedding, null))
+                    .ToListAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (storedChunks.Count > 0)
+                {
+                    var rankedVectors = storedChunks
+                        .Select(c =>
+                        {
+                            c.Score = c.Embedding is not null ? ComputeCosineSimilarity(queryVector, c.Embedding) : 0;
+                            return c;
+                        })
+                        .Where(c => (c.Score ?? 0) >= MinRelevanceScoreThreshold)
+                        .OrderByDescending(c => c.Score)
+                        .Take(6)
+                        .ToList();
+
+                    if (rankedVectors.Count > 0)
+                    {
+                        _logger.LogInformation("Retrieved {Count} relevant candidates via high-precision vector cosine similarity (top score: {TopScore:F4}) for query '{Query}'.",
+                            rankedVectors.Count, rankedVectors[0].Score, query);
+
+                        return rankedVectors
+                            .Select(chunk => new VoyageSearchResult<ResumeChunk>
+                            {
+                                Record = chunk,
+                                Text = chunk.ToContextString()
+                            })
+                            .ToList();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "In-memory vector cosine evaluation failed for query '{Query}'.", query);
+            }
+        }
+
+        // 4. Keyword Fallback as additional safety net
         try
         {
             _logger.LogInformation("Executing keyword search fallback for '{Query}'...", query);
@@ -135,22 +204,26 @@ public sealed class MongoDbRagSearcher : IVoyageRagSearcher<ResumeChunk>
             }
 
             var combinedFilter = filters.Count > 0 ? filterBuilder.Or(filters) : filterBuilder.Empty;
-            var fallbackChunks = await collection.Find(combinedFilter).Limit(8).ToListAsync(cancellationToken).ConfigureAwait(false);
+            var fallbackChunks = await collection.Find(combinedFilter).Limit(6).ToListAsync(cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation("Retrieved {Count} candidates from MongoDB keyword fallback.", fallbackChunks.Count);
+            if (fallbackChunks.Count > 0)
+            {
+                _logger.LogInformation("Retrieved {Count} candidates from MongoDB keyword fallback for query '{Query}'.", fallbackChunks.Count, query);
 
-            return fallbackChunks
-                .Select(chunk => new VoyageSearchResult<ResumeChunk>
-                {
-                    Record = chunk,
-                    Text = chunk.ToContextString()
-                })
-                .ToList();
+                return fallbackChunks
+                    .Select(chunk => new VoyageSearchResult<ResumeChunk>
+                    {
+                        Record = chunk,
+                        Text = chunk.ToContextString()
+                    })
+                    .ToList();
+            }
         }
         catch (Exception innerEx)
         {
             _logger.LogError(innerEx, "MongoDB fallback search failed for query '{Query}'.", query);
-            return [];
         }
+
+        return [];
     }
 }

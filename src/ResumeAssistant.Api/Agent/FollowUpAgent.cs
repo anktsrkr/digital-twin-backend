@@ -9,6 +9,8 @@ public interface IFollowUpAgent
 {
     Task<FollowUpResponse> GenerateFollowUpPillsAsync(
         IEnumerable<FollowUpMessageItem> messages,
+        int turnCount = 1,
+        int maxLimit = 10,
         CancellationToken cancellationToken = default);
 }
 
@@ -27,6 +29,8 @@ public sealed class FollowUpAgent : IFollowUpAgent
 
     public async Task<FollowUpResponse> GenerateFollowUpPillsAsync(
         IEnumerable<FollowUpMessageItem> messages,
+        int turnCount = 1,
+        int maxLimit = 10,
         CancellationToken cancellationToken = default)
     {
         // 1. Always create the 2 mandatory actionable recruiter pills first
@@ -52,23 +56,37 @@ public sealed class FollowUpAgent : IFollowUpAgent
             }
         };
 
-        // 2. Extract conversation context
         var messageList = messages?.ToList() ?? [];
-        var recentRelevant = messageList
-            .Where(m => !string.IsNullOrWhiteSpace(m.Content) && (m.Role == "user" || m.Role == "assistant"))
-            .TakeLast(6)
+        var pastUserQueries = messageList
+            .Where(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(m.Content))
+            .Select(m => m.Content.Trim())
             .ToList();
 
-        if (recentRelevant.Count == 0)
+        var effectiveTurn = turnCount > 0 ? turnCount : Math.Max(1, pastUserQueries.Count);
+
+        // Fast-path: When quota limit (turn 10+) is reached, return conversion pills with 0 LLM token cost
+        if (effectiveTurn >= maxLimit)
         {
-            // Initial / Empty state fallback questions (up to 3 questions -> total 5 pills)
-            pills.AddRange(GetDefaultContextualQuestions());
-            return new FollowUpResponse { Pills = pills };
+            pills.AddRange(GetQuotaConversionPills());
+            return new FollowUpResponse { Pills = pills.Take(5).ToList() };
+        }
+
+        // Empty session state: return initial curated questions
+        if (pastUserQueries.Count == 0)
+        {
+            pills.AddRange(GetDefaultContextualQuestions(effectiveTurn));
+            return new FollowUpResponse { Pills = pills.Take(5).ToList() };
         }
 
         try
         {
-            var dynamicQuestions = await FetchContextualQuestionsFromLlmAsync(recentRelevant, cancellationToken);
+            var dynamicQuestions = await FetchContextualQuestionsFromLlmAsync(
+                pastUserQueries,
+                messageList,
+                effectiveTurn,
+                maxLimit,
+                cancellationToken);
+
             if (dynamicQuestions.Count > 0)
             {
                 for (int i = 0; i < Math.Min(3, dynamicQuestions.Count); i++)
@@ -76,12 +94,18 @@ public sealed class FollowUpAgent : IFollowUpAgent
                     var q = dynamicQuestions[i].Trim();
                     if (string.IsNullOrWhiteSpace(q)) continue;
 
+                    // Skip if prompt matches a question already asked by the user
+                    if (pastUserQueries.Any(past => past.Equals(q, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        continue;
+                    }
+
                     pills.Add(new FollowUpPillItem
                     {
                         Id = $"followup-q-{i + 1}",
                         Label = FormatPillLabel(q),
                         ActionType = "ask_question",
-                        Category = "Technical",
+                        Category = DetermineCategory(effectiveTurn),
                         Icon = "sparkles",
                         Prompt = q
                     });
@@ -90,17 +114,18 @@ public sealed class FollowUpAgent : IFollowUpAgent
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to generate dynamic follow-up questions from LLM. Falling back to default suggestions.");
+            _logger.LogWarning(ex, "Failed to generate dynamic follow-up questions from LLM for turn {Turn}. Falling back to stage suggestions.", effectiveTurn);
         }
 
-        // If LLM returned fewer than 3 or failed, fill up to 5 with curated questions
+        // If LLM returned fewer than 3 or failed, fill up to 5 with stage-appropriate curated questions
         if (pills.Count < 5)
         {
-            var defaults = GetDefaultContextualQuestions();
+            var defaults = GetDefaultContextualQuestions(effectiveTurn);
             foreach (var d in defaults)
             {
                 if (pills.Count >= 5) break;
-                if (!pills.Any(p => p.Prompt.Equals(d.Prompt, StringComparison.OrdinalIgnoreCase)))
+                if (!pills.Any(p => p.Prompt.Equals(d.Prompt, StringComparison.OrdinalIgnoreCase)) &&
+                    !pastUserQueries.Any(u => u.Equals(d.Prompt, StringComparison.OrdinalIgnoreCase)))
                 {
                     pills.Add(d);
                 }
@@ -115,36 +140,75 @@ public sealed class FollowUpAgent : IFollowUpAgent
     }
 
     private async Task<List<string>> FetchContextualQuestionsFromLlmAsync(
-        List<FollowUpMessageItem> recentMessages,
+        List<string> pastUserQueries,
+        List<FollowUpMessageItem> messageList,
+        int currentTurn,
+        int maxLimit,
         CancellationToken cancellationToken)
     {
-        var conversationSummary = string.Join("\n", recentMessages.Select(m => $"{m.Role.ToUpperInvariant()}: {m.Content}"));
+        // Context Compaction:
+        // 1. Compact list of already asked topics (anti-looping negative constraint)
+        var coveredTopicsManifest = pastUserQueries.Count > 0
+            ? string.Join("\n", pastUserQueries.Select(q => $"- {q}"))
+            : "- None yet";
 
-        var systemPrompt = """
-            You are an expert Technical Recruiter & Engineering Hiring Manager Assistant. You are screening Ankit Sarkar for a Principal AI Engineer / Solutions Architect role (13+ yrs experience, ASDA eCommerce Picking Platform 700k/wk, Microsoft Agent Framework, Model Context Protocol (MCP), SpiceDB ReBAC RAG, Boots UK, NMBS, UK Global Business Mobility Visa).
+        // 2. Immediate last turn only (truncated assistant response to max 280 chars)
+        var lastUserMsg = messageList.FindLast(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase))?.Content?.Trim() ?? string.Empty;
+        var lastAssistantMsg = messageList.FindLast(m => m.Role.Equals("assistant", StringComparison.OrdinalIgnoreCase))?.Content?.Trim() ?? string.Empty;
+        if (lastAssistantMsg.Length > 280)
+        {
+            lastAssistantMsg = lastAssistantMsg[..277] + "...";
+        }
 
-            Analyze the recent conversation between the interviewer (recruiter / hiring manager) and Ankit's Digital Twin.
-            Generate 2 to 3 sharp, probing follow-up screening questions that a Director of Engineering, Chief Architect, or Lead Recruiter would naturally ask Ankit next to evaluate his seniority, technical depth, ownership, or hiring fit.
+        // Stage-Aware Prompt Guidance
+        var stageGuidance = currentTurn switch
+        {
+            <= 3 => """
+                Current Screening Phase: Stage 1 (Breadth & Flagship Impact).
+                Focus on probing massive enterprise scale, high concurrency, and zero-downtime reliability (e.g. ASDA 700k/wk picking, 90k/30-min peak trading, distributed architecture).
+                """,
+            >= 8 => """
+                Current Screening Phase: Stage 3 (Due Diligence & Hiring Logistics).
+                The recruiter is near the 10-question daily quota. Focus on probing candidate logistics, 3-month notice period, UK Skilled Worker visa sponsorship transfer, remote/London hybrid preference, or direct interview preparation.
+                """,
+            _ => """
+                Current Screening Phase: Stage 2 (Architectural Trade-offs & Leadership Depth).
+                Focus on probing technical decision trade-offs (e.g. SpiceDB ReBAC vs RBAC, MCP tool security, multi-agent orchestration reliability, team mentoring vs IC scope).
+                """
+        };
 
-            Question Archetypes to draw from:
-            - Architecture & Scale Depth: Probe specific failure modes, distributed state, concurrency, latency, or 0-downtime strategies.
-            - Architectural Trade-offs & Tech Choices: Probe why he chose a specific technology (e.g. SpiceDB ReBAC vs RBAC, MCP vs custom REST, Semantic Kernel vs custom agent loops).
-            - Leadership & Scope of Ownership: Probe his specific lead role vs individual contributor scope, mentoring, or multi-vendor team leadership.
-            - Logistics & Due Diligence: If technical topics have been covered, probe 3-month notice period, UK Skilled Worker sponsorship transfer, or global remote preferences.
+        var systemPrompt = $"""
+            You are an expert Technical Recruiter & Engineering Hiring Manager Assistant screening Ankit Sarkar for a Principal AI Engineer / Solutions Architect role (13+ yrs experience, ASDA eCommerce Picking Platform 700k/wk, Microsoft Agent Framework, Model Context Protocol (MCP), SpiceDB ReBAC RAG, Boots UK, NMBS, UK Global Business Mobility / Skilled Worker Visa, 3-month notice period).
+
+            {stageGuidance}
+
+            Negative Constraint (Anti-Looping):
+            Do NOT repeat or suggest questions overlapping with topics already explored in this session:
+            {coveredTopicsManifest}
 
             Rules:
             1. Direct Candidate Address: Phrase every question in the second person ("you", "your architecture", "did you handle").
-            2. Probing & Competency-Based: Avoid basic introductory questions (e.g. "What is AI?"). Ask high-conviction screening questions.
+            2. High Conviction: Avoid generic introductory questions (e.g. "What is AI?"). Ask sharp, senior-level screening questions.
             3. Crisp & Punchy: Keep each question between 8 and 14 words.
-            4. Return ONLY a valid JSON array of strings, for example:
-               ["How did you achieve zero downtime during ASDA's 90k/30-min peak trading?", "How do you evaluate multi-agent orchestration reliability and tool security?", "What is your notice period and UK visa sponsorship timeline?"]
-            5. Do not include markdown fences, code blocks, or extra text. Output ONLY the raw JSON array.
+            4. Output ONLY a valid JSON array of 2 to 3 strings. Example:
+               ["How did you achieve zero downtime during ASDA's 90k/30-min peak trading?", "How do you evaluate multi-agent orchestration reliability and tool security?"]
+            5. Do NOT include markdown code blocks, backticks, or explanatory text. Output ONLY the raw JSON array.
+            """;
+
+        var userPrompt = $"""
+            Session Progress: Question {currentTurn} of {maxLimit}
+
+            Latest Conversation Turn:
+            USER: {lastUserMsg}
+            ASSISTANT: {lastAssistantMsg}
+
+            Provide 2 to 3 follow-up screening questions as a JSON array of strings:
             """;
 
         var chatMessages = new List<ChatMessage>
         {
             new(ChatRole.System, systemPrompt),
-            new(ChatRole.User, $"Recent conversation history:\n{conversationSummary}\n\nProvide 2-3 follow-up screening questions as a JSON array of strings:")
+            new(ChatRole.User, userPrompt)
         };
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -192,34 +256,135 @@ public sealed class FollowUpAgent : IFollowUpAgent
         return question[..42].TrimEnd() + "...";
     }
 
-    private static List<FollowUpPillItem> GetDefaultContextualQuestions() =>
+    private static string DetermineCategory(int turn) => turn switch
+    {
+        <= 3 => "Flagship Scale",
+        >= 8 => "Recruiter Diligence",
+        _ => "AI Architecture"
+    };
+
+    private static List<FollowUpPillItem> GetQuotaConversionPills() =>
     [
         new()
         {
-            Id = "default-asda",
-            Label = "ASDA Scale & Zero-Incident Resilience",
+            Id = "action-email-ankit",
+            Label = "Email Ankit Directly",
             ActionType = "ask_question",
-            Category = "Flagship Scale",
+            Category = "Direct Contact",
             Icon = "sparkles",
-            Prompt = "How did you achieve zero downtime during ASDA's 90k/30-min peak trading?"
+            Prompt = "How can I email Ankit Sarkar directly for an interview invitation?"
         },
         new()
         {
-            Id = "default-agentic",
-            Label = "Agentic AI, MCP & Enterprise Security",
+            Id = "action-linkedin-github",
+            Label = "LinkedIn & GitHub Links",
             ActionType = "ask_question",
-            Category = "AI Architecture",
+            Category = "Profiles",
             Icon = "sparkles",
-            Prompt = "How do you secure MCP tool calling and multi-agent workflows in production?"
+            Prompt = "Can you share Ankit Sarkar's LinkedIn and GitHub profile links?"
         },
         new()
         {
-            Id = "default-visa",
-            Label = "Work Rights & Availability",
+            Id = "action-availability-summary",
+            Label = "Availability & Notice Period",
             ActionType = "ask_question",
-            Category = "Authorisation",
+            Category = "Logistics",
             Icon = "sparkles",
-            Prompt = "What is your UK visa status, notice period, and relocation / remote preference?"
+            Prompt = "What is Ankit's UK visa status, 3-month notice period, and interview availability?"
         }
     ];
+
+    private static List<FollowUpPillItem> GetDefaultContextualQuestions(int turn) => turn switch
+    {
+        >= 8 =>
+        [
+            new()
+            {
+                Id = "stage-visa",
+                Label = "UK Visa Sponsorship Transfer",
+                ActionType = "ask_question",
+                Category = "Logistics",
+                Icon = "sparkles",
+                Prompt = "What is your UK visa sponsorship status and earliest start date?"
+            },
+            new()
+            {
+                Id = "stage-notice",
+                Label = "3-Month Notice Period & Flexibility",
+                ActionType = "ask_question",
+                Category = "Logistics",
+                Icon = "sparkles",
+                Prompt = "Can you describe your 3-month notice period and interview availability?"
+            },
+            new()
+            {
+                Id = "stage-location",
+                Label = "London Hybrid vs Remote Fit",
+                ActionType = "ask_question",
+                Category = "Logistics",
+                Icon = "sparkles",
+                Prompt = "What are your location preferences for London hybrid or remote roles?"
+            }
+        ],
+        >= 4 =>
+        [
+            new()
+            {
+                Id = "stage-rebac",
+                Label = "SpiceDB ReBAC RAG vs RBAC",
+                ActionType = "ask_question",
+                Category = "AI Architecture",
+                Icon = "sparkles",
+                Prompt = "Why did you choose SpiceDB ReBAC over traditional RBAC for enterprise RAG?"
+            },
+            new()
+            {
+                Id = "stage-mcp-security",
+                Label = "MCP Tool Calling Security",
+                ActionType = "ask_question",
+                Category = "AI Architecture",
+                Icon = "sparkles",
+                Prompt = "How do you secure Model Context Protocol tool calling against prompt injection?"
+            },
+            new()
+            {
+                Id = "stage-leadership",
+                Label = "Lead Architect Scope & Mentoring",
+                ActionType = "ask_question",
+                Category = "Leadership",
+                Icon = "sparkles",
+                Prompt = "How do you lead cross-functional engineering teams and mentor senior engineers?"
+            }
+        ],
+        _ =>
+        [
+            new()
+            {
+                Id = "default-asda",
+                Label = "ASDA Scale & Zero-Incident Resilience",
+                ActionType = "ask_question",
+                Category = "Flagship Scale",
+                Icon = "sparkles",
+                Prompt = "How did you achieve zero downtime during ASDA's 90k/30-min peak trading?"
+            },
+            new()
+            {
+                Id = "default-agentic",
+                Label = "Agentic AI, MCP & Enterprise Security",
+                ActionType = "ask_question",
+                Category = "AI Architecture",
+                Icon = "sparkles",
+                Prompt = "How do you secure MCP tool calling and multi-agent workflows in production?"
+            },
+            new()
+            {
+                Id = "default-visa",
+                Label = "Work Rights & Availability",
+                ActionType = "ask_question",
+                Category = "Authorisation",
+                Icon = "sparkles",
+                Prompt = "What is your UK visa status, notice period, and relocation / remote preference?"
+            }
+        ]
+    };
 }

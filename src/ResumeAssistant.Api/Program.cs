@@ -14,6 +14,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using ResumeAssistant.Api.Agent;
 using ResumeAssistant.Api.Configuration;
+using ResumeAssistant.Api.Extensions;
 using ResumeAssistant.Api.Services;
 using ResumeAssistant.Api.Telemetry;
 using ResumeAssistant.Core.Interfaces;
@@ -22,6 +23,12 @@ using ResumeAssistant.Core.Services;
 using VoyageAI;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Kestrel limits (64 KB max body to prevent DOS payload flooding)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 64 * 1024;
+});
 
 // 1. Configure strongly typed options
 var telemetryOptions = builder.Configuration.GetSection(TelemetryOptions.SectionName).Get<TelemetryOptions>() ?? new TelemetryOptions();
@@ -84,6 +91,9 @@ builder.Services.AddSingleton(mongoOptions);
 builder.Services.AddSingleton(clerkOptions);
 builder.Services.AddSingleton(calComOptions);
 builder.Services.AddSingleton<IFollowUpAgent, FollowUpAgent>();
+builder.Services.AddSingleton<IDailyQuotaService, MongoDbDailyQuotaService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddAppRateLimiting();
 builder.Services.AddHttpClient();
 
 // 2. Configure OpenTelemetry (Local Docker vs Cloud Mode)
@@ -264,7 +274,11 @@ if (!string.IsNullOrWhiteSpace(activeMongoConn))
 {
     try
     {
-        var mongoClient = new MongoClient(activeMongoConn);
+        var settings = MongoClientSettings.FromConnectionString(activeMongoConn);
+        settings.MaxConnectionPoolSize = 25;
+        settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
+        settings.ConnectTimeout = TimeSpan.FromSeconds(10);
+        var mongoClient = new MongoClient(settings);
         var mongoDatabase = mongoClient.GetDatabase(mongoOptions.GetResolvedDatabaseName());
         builder.Services.AddSingleton<IMongoClient>(mongoClient);
         builder.Services.AddSingleton<IMongoDatabase>(mongoDatabase);
@@ -280,7 +294,10 @@ if (embeddingOptions.IsJina && jinaOptions.IsConfigured)
 {
     builder.Services.AddHttpClient("JinaAI", client =>
     {
-        client.BaseAddress = new Uri("https://api.jina.ai/v1/");
+        var baseUrl = string.IsNullOrWhiteSpace(jinaOptions.BaseUrl)
+            ? "https://api.jina.ai/v1/"
+            : (jinaOptions.BaseUrl.TrimEnd('/') + "/");
+        client.BaseAddress = new Uri(baseUrl);
         client.Timeout = TimeSpan.FromSeconds(30);
     });
 
@@ -293,7 +310,8 @@ if (embeddingOptions.IsJina && jinaOptions.IsConfigured)
             model: jinaOptions.Model,
             defaultTask: "retrieval.query",
             dimensions: jinaOptions.Dimensions,
-            httpClient: httpClient);
+            httpClient: httpClient,
+            baseUrl: jinaOptions.BaseUrl);
     });
 }
 else
@@ -335,46 +353,14 @@ builder.Services.AddChatClient(sp =>
     var rs = sp.GetRequiredService<MongoDbRagSearcher>();
     var cs = sp.GetRequiredService<ICalComService>();
     var hp = sp.GetRequiredService<MongoDbChatHistoryProvider>();
+    var dq = sp.GetRequiredService<IDailyQuotaService>();
     var hca = sp.GetRequiredService<IHttpContextAccessor>();
     var vo = sp.GetRequiredService<VoyageAiOptions>();
     var llmOpt = sp.GetRequiredService<LlmOptions>();
 
     IChatClient baseClient = LlmChatClientFactory.CreateChatClient(llmOpt, l);
-    return DigitalTwinAgentFactory.CreateAgent(baseClient, rs, cs, hp, hca, vo, null, lf);
+    return DigitalTwinAgentFactory.CreateAgent(baseClient, rs, cs, hp, dq, hca, vo, null, lf);
 });
-
-var app = builder.Build();
-
-app.UseCors("AllowFrontend");
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-// Health check endpoint
-app.MapGet("/api/health", () => Results.Ok(new
-{
-    status = "healthy",
-    runtime = ".NET 10",
-    service = "ResumeAssistant.Api",
-    authProvider = "Clerk Authentication (RS256 Session JWT)",
-    clerkIssuer = clerkOptions.Issuer,
-    clerkConfigured = clerkOptions.IsConfigured,
-    llmMode = llmOptions.Mode,
-    llmProvider = llmOptions.IsLocal ? $"LM Studio ({llmOptions.Local.Model})" : $"Cloudflare Workers AI ({llmOptions.Cloud.Model})",
-    llmEndpoint = llmOptions.IsLocal ? llmOptions.Local.Endpoint : llmOptions.Cloud.GetResolvedBaseUrl(),
-    followupLlmMode = followUpLlmOptions.Mode,
-    followupLlmProvider = followUpLlmOptions.IsLocal ? $"LM Studio ({followUpLlmOptions.Local.Model})" : $"Cloudflare Workers AI ({followUpLlmOptions.Cloud.Model})",
-    embeddingProvider = embeddingOptions.IsJina && jinaOptions.IsConfigured ? $"Jina AI ({jinaOptions.Model})" : $"Voyage AI ({voyageOptions.EmbeddingModel})",
-    mongoDbMode = mongoOptions.Mode,
-    mongoDbDatabase = mongoOptions.GetResolvedDatabaseName(),
-    threadPersistence = "MongoDB user_threads (Microsoft Agent Framework)",
-    calComConfigured = calComOptions.IsConfigured,
-    calComUser = calComOptions.Username,
-    calComEventTypeId = calComOptions.EventTypeId,
-    telemetryMode = telemetryOptions.Mode,
-    telemetryEndpoint = targetOtlpBase ?? "None",
-    timestamp = DateTimeOffset.UtcNow
-}));
 
 // Map CopilotKit runtime info discovery endpoints
 var runtimeInfo = new
@@ -432,10 +418,28 @@ static string SanitizeAguiRunInputJson(string rawJson)
     return rawJson;
 }
 
-// Middleware to bridge CopilotKit runtime envelope protocol with AG-UI endpoint, sanitize message history, and persist user threads
+var app = builder.Build();
+
+app.UseCors("AllowFrontend");
+app.UseRateLimiter();
+
+// Middleware to bridge CopilotKit runtime envelope protocol with AG-UI endpoint, sanitize message history, and serve info discovery anonymously
+// CRITICAL: MUST execute before UseAuthentication & UseAuthorization so CopilotKit info discovery never returns 401 Unauthorized.
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/agentic_chat") && HttpMethods.IsPost(context.Request.Method))
+    var path = context.Request.Path;
+
+    // 1. Direct discovery endpoints (GET/POST /agentic_chat/info, /info)
+    if (path.Equals("/agentic_chat/info", StringComparison.OrdinalIgnoreCase) ||
+        path.Equals("/info", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(runtimeInfo);
+        return;
+    }
+
+    // 2. CopilotKit envelope protocol on /agentic_chat
+    if (path.StartsWithSegments("/agentic_chat") && HttpMethods.IsPost(context.Request.Method))
     {
         context.Request.EnableBuffering();
         using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
@@ -488,24 +492,53 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Health check endpoint
+app.MapGet("/api/health", () => Results.Ok(new
+{
+    status = "healthy",
+    runtime = ".NET 10",
+    service = "ResumeAssistant.Api",
+    authProvider = "Clerk Authentication (RS256 Session JWT)",
+    clerkIssuer = clerkOptions.Issuer,
+    clerkConfigured = clerkOptions.IsConfigured,
+    llmMode = llmOptions.Mode,
+    llmProvider = llmOptions.IsLocal ? $"LM Studio ({llmOptions.Local.Model})" : $"Cloudflare Workers AI ({llmOptions.Cloud.Model})",
+    llmEndpoint = llmOptions.IsLocal ? llmOptions.Local.Endpoint : llmOptions.Cloud.GetResolvedBaseUrl(),
+    followupLlmMode = followUpLlmOptions.Mode,
+    followupLlmProvider = followUpLlmOptions.IsLocal ? $"LM Studio ({followUpLlmOptions.Local.Model})" : $"Cloudflare Workers AI ({followUpLlmOptions.Cloud.Model})",
+    embeddingProvider = embeddingOptions.IsJina && jinaOptions.IsConfigured ? $"Jina AI ({jinaOptions.Model})" : $"Voyage AI ({voyageOptions.EmbeddingModel})",
+    mongoDbMode = mongoOptions.Mode,
+    mongoDbDatabase = mongoOptions.GetResolvedDatabaseName(),
+    threadPersistence = "MongoDB user_threads (Microsoft Agent Framework)",
+    calComConfigured = calComOptions.IsConfigured,
+    calComUser = calComOptions.Username,
+    calComEventTypeId = calComOptions.EventTypeId,
+    telemetryMode = telemetryOptions.Mode,
+    telemetryEndpoint = targetOtlpBase ?? "None",
+    timestamp = DateTimeOffset.UtcNow
+})).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.AnonPolicy);
+
 app.MapGet("/", () => Results.Ok(new
 {
     status = "healthy",
     service = "ResumeAssistant.Api",
     version = "1.0.0",
     timestamp = DateTime.UtcNow
-})).AllowAnonymous();
+})).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.AnonPolicy);
 
-app.MapGet("/agentic_chat/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
-app.MapPost("/agentic_chat/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
-app.MapGet("/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
-app.MapPost("/info", () => Results.Ok(runtimeInfo)).AllowAnonymous();
+app.MapGet("/agentic_chat/info", () => Results.Ok(runtimeInfo)).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.AnonPolicy);
+app.MapPost("/agentic_chat/info", () => Results.Ok(runtimeInfo)).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.AnonPolicy);
+app.MapGet("/info", () => Results.Ok(runtimeInfo)).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.AnonPolicy);
+app.MapPost("/info", () => Results.Ok(runtimeInfo)).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.AnonPolicy);
 
 var chatClient = app.Services.GetRequiredService<IChatClient>();
 var agent = chatClient.AsAIAgent();
 
-// Map the AG-UI agent streaming endpoint with native ASP.NET Core Authorization
-app.MapAGUIServer("/agentic_chat", agent).RequireAuthorization();
+// Map the AG-UI agent streaming endpoint with native ASP.NET Core Authorization & Rate Limiting
+app.MapAGUIServer("/agentic_chat", agent).RequireAuthorization().RequireRateLimiting(RateLimitingExtensions.ChatPolicy);
 
 app.MapControllers();
 

@@ -13,6 +13,7 @@
 [CmdletBinding()]
 param (
     [string]$Server = "site86558.siteasp.net",
+    [string]$SiteUrl = "digitaltwinbe.runasp.net",
     [int]$Port = 21,
     [string]$Username = "site86558",
     [string]$Password = "C@a5kT2=4+Sy",
@@ -131,7 +132,7 @@ $TempOfflineFile = "$env:TEMP\app_offline.htm"
 [System.IO.File]::WriteAllText($TempOfflineFile, $OfflineContent)
 Upload-FtpFile -LocalFilePath $TempOfflineFile -RemotePath "$RemoteRoot/app_offline.htm"
 Remove-Item -Force $TempOfflineFile
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 6
 
 # 5. Upload All Publish Files
 Write-Host "`n[4/6] Uploading published files to $RemoteRoot..." -ForegroundColor Yellow
@@ -160,29 +161,29 @@ Write-Host " -> Successfully uploaded $TotalFiles files." -ForegroundColor Green
 Write-Host "`n[5/6] Starting IIS application pool (removing app_offline.htm and iisstart.htm)..." -ForegroundColor Yellow
 Remove-FtpFile -RemotePath "$RemoteRoot/iisstart.htm"
 Remove-FtpFile -RemotePath "$RemoteRoot/app_offline.htm"
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 6
 
 # 7. Verify Health Probe
-Write-Host "`n[6/6] Probing live health endpoint: https://$Server/..." -ForegroundColor Yellow
+Write-Host "`n[6/6] Probing live health endpoint: https://$SiteUrl/info..." -ForegroundColor Yellow
 try {
-    $healthUri = "https://$Server/"
-    $response = Invoke-WebRequest -Uri $healthUri -UseBasicParsing -TimeoutSec 15
-    Write-Host " -> Health Check Status: $($response.StatusCode) OK" -ForegroundColor Green
-    Write-Host " -> Response Content: $($response.Content)" -ForegroundColor Cyan
+    $infoResponse = Invoke-WebRequest -Uri "https://$SiteUrl/info" -UseBasicParsing -TimeoutSec 15
+    Write-Host " -> /info Status: $($infoResponse.StatusCode) OK" -ForegroundColor Green
+    Write-Host " -> Response Content: $($infoResponse.Content)" -ForegroundColor Cyan
 } catch {
-    Write-Host " -> Warning: Initial probe returned $($_.Exception.Message). Trying /info..." -ForegroundColor Yellow
+    Write-Host " -> Warning: Initial /info probe returned $($_.Exception.Message). Trying root..." -ForegroundColor Yellow
     try {
-        $infoResponse = Invoke-WebRequest -Uri "https://$Server/info" -UseBasicParsing -TimeoutSec 15
-        Write-Host " -> /info Status: $($infoResponse.StatusCode) OK" -ForegroundColor Green
-        Write-Host " -> Response Content: $($infoResponse.Content)" -ForegroundColor Cyan
+        $healthUri = "https://$SiteUrl/"
+        $response = Invoke-WebRequest -Uri $healthUri -UseBasicParsing -TimeoutSec 15
+        Write-Host " -> Root Status: $($response.StatusCode) OK" -ForegroundColor Green
+        Write-Host " -> Response Content: $($response.Content)" -ForegroundColor Cyan
     } catch {
-        Write-Host " -> Site is initializing. Please verify at https://$Server/" -ForegroundColor Yellow
+        Write-Host " -> Site is initializing. Please verify at https://$SiteUrl/info" -ForegroundColor Yellow
     }
 }
 
 Write-Host "`n==========================================================" -ForegroundColor Green
 Write-Host "  Deployment Completed Successfully!                      " -ForegroundColor Green
-Write-Host "  Base URL: https://$Server/                              " -ForegroundColor Green
-Write-Host "  Info URL: https://$Server/info                          " -ForegroundColor Green
-Write-Host "  AGUI URL: https://$Server/agentic_chat                  " -ForegroundColor Green
+Write-Host "  Base URL: https://$SiteUrl/                             " -ForegroundColor Green
+Write-Host "  Info URL: https://$SiteUrl/info                         " -ForegroundColor Green
+Write-Host "  AGUI URL: https://$SiteUrl/agentic_chat                 " -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Green

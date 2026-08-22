@@ -99,15 +99,22 @@ public sealed class DigitalTwinKnowledgeTools(MongoDbRagSearcher ragSearcher)
             SourceLink = r.Record?.SourceLink,
             Technologies = r.Record?.Technologies ?? [],
             Content = r.Record?.Content ?? r.Text,
-            Similarity = r.Record?.Similarity
+            Similarity = r.Record?.Score ?? r.Record?.Similarity
         }).ToList();
 
         var sb = new System.Text.StringBuilder();
-        foreach (var c in citations)
+        if (citations.Count > 0)
         {
-            sb.AppendLine($"[Source: {c.SourceName} | Link: {c.SourceLink ?? "#"}]");
-            sb.AppendLine(c.Content);
-            sb.AppendLine();
+            foreach (var c in citations)
+            {
+                sb.AppendLine($"[Source: {c.SourceName} | Link: {c.SourceLink ?? "#"}]");
+                sb.AppendLine(c.Content);
+                sb.AppendLine();
+            }
+        }
+        else
+        {
+            sb.AppendLine("No verified case study chunks passed the 0.65 relevance threshold for this query. Answer from your foundational architectural principles as Ankit Sarkar without generating fictitious case citations.");
         }
 
         return new KnowledgeSearchResponse
@@ -220,6 +227,12 @@ public sealed class FollowUpRequest
 {
     [JsonPropertyName("messages")]
     public List<FollowUpMessageItem> Messages { get; set; } = [];
+
+    [JsonPropertyName("turn_count")]
+    public int? TurnCount { get; set; }
+
+    [JsonPropertyName("max_daily_limit")]
+    public int? MaxDailyLimit { get; set; }
 }
 
 public sealed class FollowUpPillItem

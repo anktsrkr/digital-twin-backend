@@ -18,26 +18,32 @@
     "Mode": "Cloud",
     "Cloud": {
       "AccountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
-      "ApiToken": "YOUR_CLOUDFLARE_API_TOKEN",
+      "ApiToken": "YOUR_ZUPLO_API_KEY",
       "Model": "@cf/google/gemma-4-26b-a4b-it",
-      "BaseUrl": ""
+      "BaseUrl": "https://digital-twin-main-fd365cd.zuplo.app/config_a90bfb2a121047ca89a12c8a800bca3e/v1"
     }
   },
   "FollowUpLLM": {
     "Mode": "Cloud",
+    "Local": {
+      "Endpoint": "http://localhost:1234/v1",
+      "Model": "google/gemma-4-e4b",
+      "ApiKey": "lm-studio"
+    },
     "Cloud": {
       "AccountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
-      "ApiToken": "YOUR_CLOUDFLARE_API_TOKEN",
+      "ApiToken": "YOUR_ZUPLO_API_KEY",
       "Model": "@cf/google/gemma-4-26b-a4b-it",
-      "BaseUrl": ""
+      "BaseUrl": "https://digital-twin-main-fd365cd.zuplo.app/config_a90bfb2a121047ca89a12c8a800bca3e/v1"
     }
   },
   "Embedding": {
     "Provider": "JinaAI"
   },
   "JinaAI": {
-    "ApiKey": "YOUR_JINA_API_KEY",
-    "Model": "jina-embeddings-v3",
+    "ApiKey": "YOUR_ZUPLO_API_KEY",
+    "BaseUrl": "https://digital-twin-main-fd365cd.zuplo.app/config_a90bfb2a121047ca89a12c8a800bca3e/v1/",
+    "Model": "jina-embeddings-v5-text-small",
     "Dimensions": 1024,
     "RerankModel": "jina-reranker-v2-base-multilingual",
     "TopK": 4

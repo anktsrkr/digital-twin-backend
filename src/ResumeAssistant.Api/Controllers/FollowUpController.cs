@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ResumeAssistant.Api.Agent;
+using ResumeAssistant.Api.Extensions;
 
 namespace ResumeAssistant.Api.Controllers;
 
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting(RateLimitingExtensions.FollowUpPolicy)]
 public sealed class FollowUpController : ControllerBase
 {
     private readonly IFollowUpAgent _followUpAgent;
@@ -30,9 +33,12 @@ public sealed class FollowUpController : ControllerBase
         CancellationToken cancellationToken)
     {
         var messages = request?.Messages ?? [];
-        _logger.LogInformation("Generating follow-up pills for conversation with {Count} messages", messages.Count);
+        var turnCount = request?.TurnCount ?? Math.Max(1, messages.Count(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase)));
+        var maxLimit = request?.MaxDailyLimit ?? 10;
 
-        var result = await _followUpAgent.GenerateFollowUpPillsAsync(messages, cancellationToken);
+        _logger.LogInformation("Generating follow-up pills for conversation with {Count} messages (Turn {Turn}/{Limit})", messages.Count, turnCount, maxLimit);
+
+        var result = await _followUpAgent.GenerateFollowUpPillsAsync(messages, turnCount, maxLimit, cancellationToken);
         return Ok(result);
     }
 
@@ -53,7 +59,7 @@ public sealed class FollowUpController : ControllerBase
     [HttpGet("default")]
     public async Task<ActionResult<FollowUpResponse>> GetDefaults(CancellationToken cancellationToken)
     {
-        var result = await _followUpAgent.GenerateFollowUpPillsAsync([], cancellationToken);
+        var result = await _followUpAgent.GenerateFollowUpPillsAsync([], 1, 10, cancellationToken);
         return Ok(result);
     }
 }

@@ -28,6 +28,21 @@ public sealed class MongoDbChatHistoryProvider : ChatHistoryProvider
         {
             _collection = database.GetCollection<UserThread>("user_threads");
             _profilesCollection = database.GetCollection<RecruiterProfile>("recruiter_profiles");
+
+            // Ensure 30-day TTL index on user_threads so inactive chat histories auto-prune
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var keys = Builders<UserThread>.IndexKeys.Ascending(t => t.LastUpdatedAt);
+                    var opts = new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(30), Name = "user_threads_ttl_30d" };
+                    await _collection.Indexes.CreateOneAsync(new CreateIndexModel<UserThread>(keys, opts));
+                }
+                catch
+                {
+                    // Ignore index creation error on startup
+                }
+            });
         }
 
         _sessionState = new ProviderSessionState<State>(
@@ -76,7 +91,7 @@ public sealed class MongoDbChatHistoryProvider : ChatHistoryProvider
         if (persistedMsgs.Count == 0) return;
 
         var update = Builders<UserThread>.Update
-            .PushEach(t => t.Messages, persistedMsgs)
+            .PushEach(t => t.Messages, persistedMsgs, slice: -40)
             .Set(t => t.LastUpdatedAt, DateTimeOffset.UtcNow)
             .SetOnInsert(t => t.ThreadId, state.SessionDbKey)
             .SetOnInsert(t => t.CreatedAt, DateTimeOffset.UtcNow);
@@ -122,7 +137,7 @@ public sealed class MongoDbChatHistoryProvider : ChatHistoryProvider
 
         var filter = Builders<UserThread>.Filter.Eq(t => t.ThreadId, threadId);
         var update = Builders<UserThread>.Update
-            .PushEach(t => t.Messages, newMessages)
+            .PushEach(t => t.Messages, newMessages, slice: -40)
             .Set(t => t.LastUpdatedAt, DateTimeOffset.UtcNow)
             .SetOnInsert(t => t.ThreadId, threadId)
             .SetOnInsert(t => t.UserId, userId)

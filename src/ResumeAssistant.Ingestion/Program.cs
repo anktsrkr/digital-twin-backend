@@ -26,6 +26,7 @@ public class Program
 
         string embeddingProvider = configuration["EMBEDDING_PROVIDER"] ?? configuration["Embedding:Provider"] ?? "JinaAI";
         string? jinaApiKey = configuration["JINA_API_KEY"] ?? configuration["JinaAI:ApiKey"];
+        string? jinaBaseUrl = configuration["JINA_BASE_URL"] ?? configuration["JinaAI:BaseUrl"];
         string jinaModel = configuration["JinaAI:Model"] ?? "jina-embeddings-v3";
         string? voyageApiKey = configuration["VOYAGE_API_KEY"] ?? configuration["VoyageAI:ApiKey"];
         string voyageModel = configuration["VoyageAI:Model"] ?? "voyage-3-lite";
@@ -148,7 +149,8 @@ public class Program
                 apiKey: jinaApiKey!,
                 model: jinaModel,
                 defaultTask: "retrieval.passage",
-                dimensions: 1024);
+                dimensions: 1024,
+                baseUrl: jinaBaseUrl);
         }
         else if (isVoyageConfigured)
         {

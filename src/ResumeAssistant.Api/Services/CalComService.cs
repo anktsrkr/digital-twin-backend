@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Caching.Memory;
 using ResumeAssistant.Api.Configuration;
 
 namespace ResumeAssistant.Api.Services;
@@ -31,13 +32,19 @@ public sealed class CalComService : ICalComService
 {
     private readonly HttpClient _httpClient;
     private readonly CalComOptions _options;
+    private readonly IMemoryCache? _cache;
     private readonly ILogger<CalComService> _logger;
 
-    public CalComService(HttpClient httpClient, CalComOptions options, ILogger<CalComService> logger)
+    public CalComService(
+        HttpClient httpClient, 
+        CalComOptions options, 
+        ILogger<CalComService> logger, 
+        IMemoryCache? cache = null)
     {
         _httpClient = httpClient;
         _options = options;
         _logger = logger;
+        _cache = cache;
 
         if (!_httpClient.DefaultRequestHeaders.Contains("Authorization") && !string.IsNullOrWhiteSpace(_options.ApiKey))
         {
@@ -72,6 +79,13 @@ public sealed class CalComService : ICalComService
 
         var startStr = start.ToString("yyyy-MM-dd");
         var endStr = end.ToString("yyyy-MM-dd");
+
+        var cacheKey = $"cal_slots_{eventTypeId}_{startStr}_{endStr}_{tz}_{duration}";
+        if (_cache != null && _cache.TryGetValue(cacheKey, out CalAvailabilityResponse? cachedResponse) && cachedResponse != null)
+        {
+            _logger.LogInformation("Returning in-memory cached Cal.com slots for key {CacheKey}", cacheKey);
+            return cachedResponse;
+        }
 
         var url = $"slots?eventTypeId={eventTypeId}&start={Uri.EscapeDataString(startStr)}&end={Uri.EscapeDataString(endStr)}&timeZone={Uri.EscapeDataString(tz)}&duration={duration}";
 
@@ -139,27 +153,37 @@ public sealed class CalComService : ICalComService
                                 string? timeStr = null;
                                 if (slotEl.ValueKind == JsonValueKind.Object)
                                 {
-                                    if (slotEl.TryGetProperty("start", out var startProp))
-                                        timeStr = startProp.GetString();
-                                    else if (slotEl.TryGetProperty("time", out var timeProp))
+                                    if (slotEl.TryGetProperty("time", out var timeProp))
+                                    {
                                         timeStr = timeProp.GetString();
+                                    }
+                                    else if (slotEl.TryGetProperty("start", out var startProp))
+                                    {
+                                        timeStr = startProp.GetString();
+                                    }
                                     else if (slotEl.TryGetProperty("startTime", out var stProp))
+                                    {
                                         timeStr = stProp.GetString();
+                                    }
                                 }
                                 else if (slotEl.ValueKind == JsonValueKind.String)
                                 {
                                     timeStr = slotEl.GetString();
                                 }
 
-                                if (!string.IsNullOrWhiteSpace(timeStr) && DateTimeOffset.TryParse(timeStr, out var dto))
+                                if (!string.IsNullOrWhiteSpace(timeStr))
                                 {
-                                    flatSlots.Add(new CalSlotDetails
+                                    if (DateTimeOffset.TryParse(timeStr, out var dto))
                                     {
-                                        Date = dateKey,
-                                        TimeUtc = dto.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                                        FormattedTime = dto.ToString("dddd, MMM d @ h:mm tt"),
-                                        RawTime = timeStr
-                                    });
+                                        var utcTime = dto.UtcDateTime;
+                                        flatSlots.Add(new CalSlotDetails
+                                        {
+                                            Date = dateKey,
+                                            TimeUtc = utcTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                                            FormattedTime = $"{utcTime:dddd, MMM d} @ {dto:h:mm tt} ({tz})",
+                                            RawTime = timeStr
+                                        });
+                                    }
                                 }
                             }
                         }
@@ -167,14 +191,13 @@ public sealed class CalComService : ICalComService
                 }
             }
 
-            // If Cal.com returns zero slots for this window, generate guaranteed working-hours slots (Mon-Fri 09:00-17:00 Europe/London)
             if (flatSlots.Count == 0)
             {
-                _logger.LogInformation("Cal.com returned empty slots for {Start}-{End}. Generating schedule-based working hours slots for {Duration}m.", startStr, endStr, duration);
+                _logger.LogInformation("Cal.com returned 0 slots. Using schedule fallback generation.");
                 flatSlots = GenerateWorkingHoursSlots(start, end, tz, duration);
             }
 
-            return new CalAvailabilityResponse
+            var response = new CalAvailabilityResponse
             {
                 Success = true,
                 TimeZone = tz,
@@ -184,6 +207,13 @@ public sealed class CalComService : ICalComService
                 BookingUrl = bookingUrl,
                 EventTypes = defaultEventTypes
             };
+
+            if (_cache != null && flatSlots.Count > 0)
+            {
+                _cache.Set(cacheKey, response, TimeSpan.FromSeconds(90));
+            }
+
+            return response;
         }
         catch (Exception ex)
         {
@@ -325,6 +355,12 @@ public sealed class CalComService : ICalComService
                 };
             }
 
+            if (_cache != null)
+            {
+                _cache.Remove("cal_event_types");
+                // Note: Clearing slot caches is complex due to keys; relying on TTL is standard
+            }
+
             string? meetingUrl = null;
             try
             {
@@ -369,6 +405,12 @@ public sealed class CalComService : ICalComService
 
     public async Task<List<CalEventTypeItem>> GetEventTypesAsync(CancellationToken ct = default)
     {
+        var cacheKey = "cal_event_types";
+        if (_cache != null && _cache.TryGetValue(cacheKey, out List<CalEventTypeItem>? cachedTypes) && cachedTypes != null)
+        {
+            return cachedTypes;
+        }
+
         try
         {
             using var req = CreateRequest(HttpMethod.Get, "event-types", "2024-06-14");
@@ -383,7 +425,7 @@ public sealed class CalComService : ICalComService
             var response = JsonSerializer.Deserialize<CalEventTypesV2RawResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (response?.Data == null) return [];
 
-            return response.Data.Select(d => new CalEventTypeItem
+            var items = response.Data.Select(d => new CalEventTypeItem
             {
                 Id = d.Id,
                 Title = d.Title,
@@ -391,6 +433,13 @@ public sealed class CalComService : ICalComService
                 LengthInMinutes = d.LengthInMinutes,
                 BookingUrl = d.BookingUrl ?? $"https://cal.com/{_options.Username}/{d.Slug}"
             }).ToList();
+
+            if (_cache != null && items.Count > 0)
+            {
+                _cache.Set(cacheKey, items, TimeSpan.FromMinutes(10));
+            }
+
+            return items;
         }
         catch (Exception ex)
         {

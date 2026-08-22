@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using ResumeAssistant.Api.Extensions;
 using ResumeAssistant.Api.Services;
 
 namespace ResumeAssistant.Api.Controllers;
@@ -13,6 +15,7 @@ public sealed class CalendarController(ICalComService calComService, ILogger<Cal
     /// Returns live available appointment slots from Cal.com
     /// </summary>
     [HttpGet("slots")]
+    [EnableRateLimiting(RateLimitingExtensions.CalendarSlotsPolicy)]
     public async Task<IActionResult> GetSlots(
         [FromQuery] DateTime? start,
         [FromQuery] DateTime? end,
@@ -29,6 +32,7 @@ public sealed class CalendarController(ICalComService calComService, ILogger<Cal
     /// Creates a meeting booking directly via Cal.com
     /// </summary>
     [HttpPost("book")]
+    [EnableRateLimiting(RateLimitingExtensions.BookingPolicy)]
     public async Task<IActionResult> BookSlot([FromBody] BookSlotRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Email))
@@ -52,6 +56,7 @@ public sealed class CalendarController(ICalComService calComService, ILogger<Cal
     /// Returns active Cal.com event types
     /// </summary>
     [HttpGet("event-types")]
+    [EnableRateLimiting(RateLimitingExtensions.CalendarSlotsPolicy)]
     public async Task<IActionResult> GetEventTypes(CancellationToken ct)
     {
         var types = await calComService.GetEventTypesAsync(ct);

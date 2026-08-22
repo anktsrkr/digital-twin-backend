@@ -17,12 +17,15 @@ public sealed class JinaEmbeddingGenerator : IEmbeddingGenerator<string, Embeddi
     private readonly string _defaultTask;
     private readonly int _dimensions;
 
+    public const string DefaultBaseUrl = "https://api.jina.ai/v1/";
+
     public JinaEmbeddingGenerator(
         string apiKey,
         string model = "jina-embeddings-v3",
         string defaultTask = "retrieval.passage",
         int dimensions = 1024,
-        HttpClient? httpClient = null)
+        HttpClient? httpClient = null,
+        string? baseUrl = null)
     {
         _model = string.IsNullOrWhiteSpace(model) ? "jina-embeddings-v3" : model;
         _defaultTask = string.IsNullOrWhiteSpace(defaultTask) ? "retrieval.passage" : defaultTask;
@@ -35,9 +38,13 @@ public sealed class JinaEmbeddingGenerator : IEmbeddingGenerator<string, Embeddi
         }
         else
         {
+            var resolvedBaseUrl = string.IsNullOrWhiteSpace(baseUrl)
+                ? DefaultBaseUrl
+                : (baseUrl.TrimEnd('/') + "/");
+
             _httpClient = new HttpClient
             {
-                BaseAddress = new Uri("https://api.jina.ai/v1/"),
+                BaseAddress = new Uri(resolvedBaseUrl),
                 Timeout = TimeSpan.FromSeconds(30)
             };
             _disposeHttpClient = true;

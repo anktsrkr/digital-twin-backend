@@ -169,6 +169,7 @@ public sealed class JinaAiOptions
     public const string SectionName = "JinaAI";
 
     public string? ApiKey { get; set; }
+    public string? BaseUrl { get; set; }
     public string Model { get; set; } = "jina-embeddings-v3";
     public int Dimensions { get; set; } = 1024;
     public string RerankModel { get; set; } = "jina-reranker-v2-base-multilingual";
