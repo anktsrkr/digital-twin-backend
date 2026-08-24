@@ -158,21 +158,22 @@ public class OutputSanitizerDynamicReasoningTests
     }
 
     [Fact]
-    public async Task OutputSanitizer_Enforces3072TokenBudget()
+    public async Task OutputSanitizer_Enforces8192TokenBudget()
     {
         var innerClient = new CompletelyEmptyChatClient();
         var sanitizer = new OutputSanitizerChatClient(innerClient);
 
         var options = new ChatOptions
         {
-            MaxOutputTokens = 4096
+            MaxOutputTokens = 16384
         };
 
         await sanitizer.GetResponseAsync([new ChatMessage(ChatRole.User, "Test query")], options);
 
         Assert.NotNull(innerClient.LastOptions);
-        Assert.Equal(3072, innerClient.LastOptions.MaxOutputTokens);
+        Assert.Equal(8192, innerClient.LastOptions.MaxOutputTokens);
     }
+
 
     private sealed class RateLimitedChatClient : IChatClient
     {

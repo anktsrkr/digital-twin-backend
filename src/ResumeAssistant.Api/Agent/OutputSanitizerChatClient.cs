@@ -6,7 +6,7 @@ namespace ResumeAssistant.Api.Agent;
 
 /// <summary>
 /// Post-LLM guardrail client that monitors model responses for canary token leaks,
-/// scrubs internal function names, bounds output token budgets to 3072 on Cloudflare Workers AI,
+/// scrubs internal function names, bounds output token budgets to 8192 on Cloudflare Workers AI,
 /// and dynamically extracts architectural insights from reasoning traces if the model exhausts tokens during reasoning.
 /// Preserves original ChatResponseUpdate.Contents for AG-UI streaming compatibility.
 /// </summary>
@@ -25,7 +25,7 @@ public sealed partial class OutputSanitizerChatClient(IChatClient innerClient) :
     private static ChatOptions EnsureBoundedOptions(ChatOptions? options)
     {
         var bounded = options ?? new ChatOptions();
-        bounded.MaxOutputTokens = Math.Min(bounded.MaxOutputTokens ?? 3072, 3072);
+        bounded.MaxOutputTokens = Math.Min(bounded.MaxOutputTokens ?? 8192, 8192);
         bounded.Temperature ??= 0.25f;
         return bounded;
     }

@@ -1595,7 +1595,6 @@ export const DigitalTwinChat: React.FC<DigitalTwinChatProps> = ({
                 'GetAvailableInterviewSlots',
                 'ShowScheduleInterviewCard',
                 'ShowDownloadResumeCard',
-                'SearchResumeKnowledgeBase',
               ];
 
               const hasNearbyRenderedToolCall = (() => {
