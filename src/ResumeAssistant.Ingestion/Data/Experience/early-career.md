@@ -11,21 +11,23 @@ technologies:
   - "C#"
   - "ASP.NET MVC"
   - "SQL Server"
+  - "JavaScript"
+  - "Entity Framework"
   - "Agile / Scrum"
   - "SDLC"
   - "Web Applications"
 ---
 
-# Early Career Software Engineering & Full-Stack .NET Development
+# Early Career Software Engineering & Full-Stack .NET Foundations
 
-Early career software engineering roles delivering, maintaining, and scaling enterprise web applications built on the Microsoft technology stack within collaborative Agile teams in India.
+Early career software engineering roles delivering, supporting, and maintaining high-quality enterprise web applications built on the Microsoft technology stack within collaborative Agile teams in India.
 
-## Roles & Timelines
+## 1. Roles & Timelines
 - **Software Developer** – Customer First Infonet Pvt Ltd (2014 – 2015)
 - **Software Developer** – Max Mobility Pvt Ltd (2013 – 2014)
 
-## Key Responsibilities & Foundations
-- Developed enterprise web applications using ASP.NET MVC, C#, SQL Server, and Entity Framework.
-- Delivered new features, production support, and defect resolution across customer-facing business applications in Agile sprints.
-- Collaborated with business stakeholders to implement technical enhancements and ensure application stability.
-- Established a strong foundation in enterprise software engineering, clean code principles, SDLC lifecycle processes, and Agile delivery practices.
+## 2. Core Responsibilities & Technical Foundations
+- Developed end-to-end web applications and customer-facing portals using **C#**, **ASP.NET MVC**, **Entity Framework**, **SQL Server**, and **JavaScript/jQuery**.
+- Designed relational database schemas, optimized SQL queries, written stored procedures, and integrated external payment and notification APIs.
+- Collaborated closely with product owners, business analysts, and QA teams in fast-paced Agile/Scrum delivery environments.
+- Established foundational expertise in clean architecture, SOLID principles, debugging complex production systems, and end-to-end software development lifecycles (SDLC).

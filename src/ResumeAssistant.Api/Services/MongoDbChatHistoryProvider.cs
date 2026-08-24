@@ -70,9 +70,16 @@ public sealed class MongoDbChatHistoryProvider : ChatHistoryProvider
             return [];
         }
 
-        return thread.Messages.Select(m => new ChatMessage(
-            m.Role.Equals("user", StringComparison.OrdinalIgnoreCase) ? ChatRole.User : ChatRole.Assistant,
-            m.Content));
+        // Sliding window: keep only the last 6 messages (3 user+assistant turns).
+        // Telemetry shows each prior turn adds 3-4k tokens of history; without a cap,
+        // input tokens grow unboundedly and degrade synthesis quality for dense ADR topics.
+        const int MaxHistoryMessages = 6;
+
+        return thread.Messages
+            .TakeLast(MaxHistoryMessages)
+            .Select(m => new ChatMessage(
+                m.Role.Equals("user", StringComparison.OrdinalIgnoreCase) ? ChatRole.User : ChatRole.Assistant,
+                m.Content));
     }
 
     protected override async ValueTask StoreChatHistoryAsync(

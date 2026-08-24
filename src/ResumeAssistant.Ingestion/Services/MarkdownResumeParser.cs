@@ -26,7 +26,7 @@ public static class MarkdownResumeParser
         .Build();
 
     private static readonly Regex FrontmatterRegex = new(@"^---\r?\n(.*?)\r?\n---\r?\n", RegexOptions.Singleline | RegexOptions.Compiled);
-    private static readonly Regex HeaderSplitRegex = new(@"(?=^##\s+)", RegexOptions.Multiline | RegexOptions.Compiled);
+    private static readonly Regex HeaderSplitRegex = new(@"(?=^#{2,3}\s+)", RegexOptions.Multiline | RegexOptions.Compiled);
 
     /// <summary>
     /// Parses a Markdown document with YAML frontmatter and splits it into semantic, header-aware ResumeChunks.
@@ -82,15 +82,29 @@ public static class MarkdownResumeParser
             return chunks;
         }
 
-        // Header-aware semantic splitting for longer case studies and architecture deep dives
-        var sections = HeaderSplitRegex.Split(markdownBody)
+        // Header-aware semantic splitting (supporting both ## and ### headers)
+        var rawSections = HeaderSplitRegex.Split(markdownBody)
             .Select(s => s.Trim())
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToList();
 
+        // Defensive section normalization: If a section is just an empty header line or a tiny intro (<150 chars), merge it into the next section
+        var sections = new List<string>();
+        for (int i = 0; i < rawSections.Count; i++)
+        {
+            var sec = rawSections[i];
+            // Check if section is a trivial fragment (e.g. single header line or under 150 chars without paragraphs)
+            if (sec.Length < 150 && i < rawSections.Count - 1 && (sec.StartsWith('#') && (!sec.Contains('\n') || sec.Split('\n').Length <= 2)))
+            {
+                rawSections[i + 1] = sec + "\n\n" + rawSections[i + 1];
+                continue;
+            }
+            sections.Add(sec);
+        }
+
         if (sections.Count <= 1)
         {
-            // Fallback: split by double newlines if no ## headers exist
+            // Fallback: split by double newlines if no ##/### headers exist
             sections = SplitByParagraphs(markdownBody, maxCharsPerChunk: 1000);
         }
 
@@ -98,15 +112,19 @@ public static class MarkdownResumeParser
         foreach (var section in sections)
         {
             string sectionTitle = baseTitle;
-            var headerMatch = Regex.Match(section, @"^##\s+(.+)$", RegexOptions.Multiline);
+            var headerMatch = Regex.Match(section, @"^#{2,3}\s+(.+)$", RegexOptions.Multiline);
             if (headerMatch.Success)
             {
                 string headerName = headerMatch.Groups[1].Value.Trim();
                 sectionTitle = $"{baseTitle} — {headerName}";
             }
-            else if (sections.Count > 1)
+            else if (sectionIndex == 1)
             {
-                sectionTitle = $"{baseTitle} (Part {sectionIndex})";
+                sectionTitle = $"{baseTitle} — Overview";
+            }
+            else
+            {
+                sectionTitle = $"{baseTitle} (Section {sectionIndex})";
             }
 
             chunks.Add(new ResumeChunk
@@ -135,8 +153,8 @@ public static class MarkdownResumeParser
         return dir switch
         {
             "Experience" => "Experience",
-            "Architecture" => "Experience",
-            "Blogs" => "Projects",
+            "Architecture" => "Architecture",
+            "Projects" => "Projects",
             "Certifications" => "Certifications",
             "Skills" => "Skills",
             "Education" => "Education",
@@ -171,3 +189,5 @@ public static class MarkdownResumeParser
         return result;
     }
 }
+
+

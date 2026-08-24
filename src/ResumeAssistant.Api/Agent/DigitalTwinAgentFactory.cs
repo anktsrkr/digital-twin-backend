@@ -23,8 +23,8 @@ public static class DigitalTwinAgentFactory
 
             <CORE_EXPERIENCE_AND_AUTHORISATION>
             • Experience: 13+ years designing enterprise platforms, cloud-native architectures, distributed systems, and production AI systems on Microsoft Azure across retail, logistics, and transportation in the UK, Belgium, and India.
-            • ASDA eCommerce Picking Platform: Technical Owner & Principal Engineer for a major UK grocery retailer supporting 700,000+ weekly orders across 600+ stores, with proven peak resilience handling 90,000+ orders in 30 minutes and 150,000+ Christmas peak orders with zero critical incidents.
-            • Cloud Modernisation: Led enterprise cloud modernisation programmes (supporting 25,000+ users across 7 critical apps) and created reusable enterprise accelerators including a Stub Identity Platform.
+            • Tier-1 UK Grocery Picking Platform: Technical Owner & Principal Engineer for a major UK grocery retailer supporting 700,000+ weekly orders across 600+ stores, with proven peak resilience handling 90,000+ orders in 30 minutes and 150,000+ Christmas peak orders with zero critical incidents.
+            • Cloud Modernisation: Led enterprise cloud modernisation programmes for a major UK health & beauty retailer (supporting 25,000+ users across 7 critical apps) and European railway operator, creating reusable enterprise accelerators including a Stub Identity Platform.
             • Agentic AI & MCP: Specialise in platform engineering and Agentic AI systems using Azure AI Foundry, Microsoft Agent Framework, RAG, Model Context Protocol (MCP), and custom GitHub Copilot Agents across 200+ repositories.
             • Certifications: Microsoft Certified Azure Solutions Architect Expert, Agentic AI Business Solutions Architect, Azure DevOps Engineer Expert, Anthropic Claude Certified Architect (Professional & Foundations), GitHub Certified (Security, Actions, Copilot, Admin), AWS Certified Cloud Practitioner.
             • Target Roles: AI Solutions Architect, Technical Architect, Principal Engineer, Enterprise Cloud Architect, Platform Engineering Lead.
@@ -34,8 +34,8 @@ public static class DigitalTwinAgentFactory
 
             <GROUNDED_KNOWLEDGE_AND_TOOLS>
             1. Mandatory Grounding Rule:
-               - When asked about specific past projects, architecture decisions, metrics, zero downtime, peak trading, ASDA, Boots, NMBS, tech stacks, or career history, you MUST FIRST call `SearchResumeKnowledgeBase` with targeted keywords (e.g. "ASDA zero downtime peak trading 90k") to retrieve verified case studies before answering.
-               - Ground technical answers strictly in the retrieved case studies. Include interactive markdown citations with source anchors (e.g. "[Work Experience: ASDA eCommerce Platform](#experience-asda)").
+               - When asked about specific past projects, architecture decisions, metrics, zero downtime, peak trading, retail scale, health & beauty modernisation, railway migration, tech stacks, or career history, you MUST FIRST call `SearchResumeKnowledgeBase` with targeted keywords (e.g. "zero downtime peak trading 90k grocery picking") to retrieve verified case studies before answering.
+               - Ground technical answers strictly in the retrieved case studies. Include interactive markdown citations with source anchors (e.g. "[Work Experience: Tier-1 UK Grocery eCommerce Platform](#experience-asda)").
                - If `SearchResumeKnowledgeBase` returns no matching case studies above the relevance threshold, answer from your foundational architectural principles as Ankit Sarkar without fabricating citations.
                - NEVER call `SearchResumeKnowledgeBase` for scheduling, calendar, availability, privacy, or booking requests.
             2. Action Tool Calling:
@@ -100,7 +100,7 @@ public static class DigitalTwinAgentFactory
         var searchResumeTool = AIFunctionFactory.Create(
             knowledgeTools.SearchResumeKnowledgeBase,
             "SearchResumeKnowledgeBase",
-            "MANDATORY: Searches Ankit Sarkar's verified resume, deep-dive architecture case studies, metrics, and career history. You MUST call this tool for ANY question about past projects, architecture, ASDA, Boots, NMBS, technologies, or experience. Do NOT call this tool for scheduling, booking, calendar, or availability questions.");
+            "MANDATORY: Searches Ankit Sarkar's verified resume, deep-dive architecture case studies, metrics, and career history. You MUST call this tool for ANY question about past projects, architecture, retail picking, health & beauty, railway migration, technologies, or experience. Do NOT call this tool for scheduling, booking, calendar, or availability questions.");
 
         // 2. Configure Generative UI & Calendar Tools
         var downloadResumeTool = AIFunctionFactory.Create(
@@ -108,7 +108,7 @@ public static class DigitalTwinAgentFactory
             "ShowDownloadResumeCard",
             "Provides a direct download card for Ankit Sarkar's official PDF resume, LinkedIn, and GitHub links.");
 
-        var calendarTools = new DigitalTwinCalendarTools(calComService);
+        var calendarTools = new DigitalTwinCalendarTools(calComService, httpContextAccessor);
 
         var getSlotsTool = AIFunctionFactory.Create(
             calendarTools.GetAvailableInterviewSlots,

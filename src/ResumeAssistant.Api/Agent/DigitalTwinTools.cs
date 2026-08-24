@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.Security.Claims;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 using ResumeAssistant.Api.Services;
 
 namespace ResumeAssistant.Api.Agent;
@@ -28,7 +30,7 @@ public static class DigitalTwinTools
         {
             CardType = "DownloadResumeCard",
             PdfUrl = "/resume.pdf",
-            FileName = "Ankit_Sarkar_AI_Solutions_Architect_Resume.pdf",
+            FileName = "ankit_sarkar_ai_architect_resume.pdf",
             GitHubUrl = "https://github.com/anktsrkr",
             LinkedInUrl = "https://linkedin.com/in/sarkaran",
             BlogUrl = "https://anktsrkr.github.io"
@@ -36,8 +38,27 @@ public static class DigitalTwinTools
     }
 }
 
-public sealed class DigitalTwinCalendarTools(ICalComService calComService)
+public sealed class DigitalTwinCalendarTools(ICalComService calComService, IHttpContextAccessor httpContextAccessor)
 {
+    /// <summary>
+    /// Resolves the recruiter's email from the verified Clerk JWT claims.
+    /// Falls back to the LLM-provided value only if no claim is present (e.g. unauthenticated path).
+    /// This prevents the Zuplo DLP gateway's PII masking from corrupting the email before it reaches the LLM.
+    /// </summary>
+    private string ResolveEmail(string? llmProvidedEmail)
+    {
+        var user = httpContextAccessor.HttpContext?.User;
+        var claimEmail = user?.FindFirst("email")?.Value
+            ?? user?.FindFirst(ClaimTypes.Email)?.Value;
+
+        // JWT claim is the authoritative source — never trust the LLM-parsed value over it
+        if (!string.IsNullOrWhiteSpace(claimEmail))
+            return claimEmail.Trim();
+
+        // Fallback: use LLM-provided value (may be absent or masked by DLP on older/unauthenticated sessions)
+        return llmProvidedEmail?.Trim() ?? string.Empty;
+    }
+
     [Description("Fetches real-time available interview and meeting slots directly from Ankit Sarkar's Cal.com calendar. Call ONLY when the user asks about Ankit's open availability, when he is free, or wants to check open dates and times. Do NOT call this tool for questions about who booked slots, existing appointments, or attendee names (attendee data is confidential).")]
     public async Task<CalAvailabilityResponse> GetAvailableInterviewSlots(
         [Description("Desired meeting duration in minutes (10 for quick catch-up, 15 for intro, 30 for screening, 45 for deep dive, 60 for system design). Defaults to 30.")]
@@ -56,8 +77,6 @@ public sealed class DigitalTwinCalendarTools(ICalComService calComService)
     public async Task<CalBookingResponse> BookInterviewSlot(
         [Description("Full name of the recruiter, hiring manager, or attendee.")]
         string recruiterName,
-        [Description("Work email address of the attendee where the Google Meet calendar invite will be sent.")]
-        string recruiterEmail,
         [Description("Chosen slot start time in UTC (e.g. '2026-09-04T08:00:00Z').")]
         DateTime slotStartTimeUtc,
         [Description("Optional meeting duration in minutes if applicable.")]
@@ -65,11 +84,16 @@ public sealed class DigitalTwinCalendarTools(ICalComService calComService)
         [Description("Attendee time zone (e.g. 'Europe/London', 'America/New_York'). Defaults to 'Europe/London'.")]
         string? timeZone = null,
         [Description("Brief notes or interview context (e.g. '10-min catch-up on Principal AI role at XYZ Corp').")]
-        string? notes = null)
+        string? notes = null,
+        [Description("Work email address of the attendee. Will be sourced from the verified session if available — only provide if explicitly stated by the recruiter.")]
+        string? recruiterEmail = null)
     {
+        // Always prefer the JWT-verified email claim over the LLM-parsed parameter
+        var resolvedEmail = ResolveEmail(recruiterEmail);
+
         return await calComService.CreateBookingAsync(
             recruiterName,
-            recruiterEmail,
+            resolvedEmail,
             slotStartTimeUtc,
             timeZone,
             durationInMinutes,
@@ -81,12 +105,14 @@ public sealed class DigitalTwinKnowledgeTools(MongoDbRagSearcher ragSearcher)
 {
     [Description("Searches Ankit Sarkar's verified resume, architecture case studies, technical achievements, and work history. Call this whenever answering specific questions about Ankit's past roles, technical architectures, certifications, or project specifics. Do NOT call for availability, scheduling, or booking requests.")]
     public async Task<KnowledgeSearchResponse> SearchResumeKnowledgeBase(
-        [Description("Search query or keywords relating to Ankit's experience, technologies, or projects (e.g. 'ASDA eCommerce picking resilience', 'SpiceDB ReBAC architecture', 'Azure certifications').")]
+        [Description("Search query or keywords relating to Ankit's experience, technologies, or projects (e.g. 'retail grocery picking resilience', 'SpiceDB ReBAC architecture', 'Azure certifications').")]
         string query,
         CancellationToken cancellationToken = default)
     {
         var results = await ragSearcher.SearchAsync(query, cancellationToken);
-        var citations = results.Take(5).Select(r => new KnowledgeCitationItem
+        const int MaxCitations = 5;
+
+        var citations = results.Take(MaxCitations).Select(r => new KnowledgeCitationItem
         {
             Title = r.Record?.Title ?? "Resume Entry",
             Category = r.Record?.Category ?? "Experience",

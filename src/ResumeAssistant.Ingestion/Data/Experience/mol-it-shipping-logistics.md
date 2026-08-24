@@ -15,14 +15,19 @@ technologies:
   - "CI/CD Pipelines"
   - "SQL Server"
   - "Application Frameworks"
+  - "Distributed Systems"
 ---
 
-# Global Freight & Container Logistics Platform Engineering
+# Global Freight & Container Shipping Platform Engineering
 
-Contributed to the development of the MOL Consolidation System (MCS), a business-critical logistics and freight management platform supporting global container shipping operations.
+Contributed to the engineering and evolution of the **MOL Consolidation System (MCS)**, a business-critical freight forwarding, container consolidation, and maritime logistics platform supporting global shipping operations across Asia, Europe, and North America.
 
-## Key Responsibilities & Highlights
-- Designed reusable engineering frameworks, internal NuGet packages, and shared libraries adopted across multiple engineering teams.
-- Established engineering standards, coding practices, and application templates to improve consistency and maintainability.
-- Introduced CI/CD pipelines and automated build processes, improving release reliability and drastically reducing manual deployment overhead.
-- Conducted thorough code reviews, mentored junior developers, and contributed to performance optimisation and modernisation initiatives across core .NET applications.
+## 1. Platform Engineering & Shared Frameworks
+- Engineered reusable .NET application frameworks, custom NuGet packages, and core data access layers adopted across multiple cross-functional development teams.
+- Standardized coding practices, API design patterns, and application scaffolding templates, improving code quality, test coverage, and long-term maintainability.
+- Designed high-throughput database stored procedures, indexing strategies, and batch processing pipelines in Microsoft SQL Server to handle high-volume container manifests.
+
+## 2. CI/CD Automation & Engineering Modernisation
+- Introduced automated CI/CD build and release pipelines, reducing manual deployment overhead by over 70% and accelerating sprint release cycles.
+- Participated in architecture reviews, code audits, and refactoring initiatives to modernize legacy .NET monolithic components towards modular, service-oriented architectures.
+- Mentored junior engineers on clean code practices, object-oriented design patterns, and automated unit testing methodologies.

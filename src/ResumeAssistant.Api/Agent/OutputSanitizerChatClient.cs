@@ -20,7 +20,7 @@ public sealed partial class OutputSanitizerChatClient(IChatClient innerClient) :
         TimeSpan.FromMilliseconds(200));
 
     private const string LeakedCanarySafeResponse =
-        "As an AI Solutions Architect, I focus on delivering secure, production-grade cloud and agentic platforms. Feel free to explore my verified case studies (like ASDA peak resilience or enterprise MCP architectures) or schedule an interview below!";
+        "As an AI Solutions Architect, I focus on delivering secure, production-grade cloud and agentic platforms. Feel free to explore my verified case studies (like high-scale retail peak resilience or enterprise MCP architectures) or schedule an interview below!";
 
     private static ChatOptions EnsureBoundedOptions(ChatOptions? options)
     {
@@ -41,7 +41,7 @@ public sealed partial class OutputSanitizerChatClient(IChatClient innerClient) :
 
         try
         {
-            return ToolNameScrubberRegex.Replace(text, match => match.Value switch
+            var cleaned = ToolNameScrubberRegex.Replace(text, match => match.Value switch
             {
                 var s when s.Equals("SearchResumeKnowledgeBase", StringComparison.OrdinalIgnoreCase) => "my verified case studies",
                 var s when s.Equals("BookInterviewSlot", StringComparison.OrdinalIgnoreCase) => "the scheduling system",
@@ -50,11 +50,24 @@ public sealed partial class OutputSanitizerChatClient(IChatClient innerClient) :
                 var s when s.Equals("ShowScheduleInterviewCard", StringComparison.OrdinalIgnoreCase) => "the meeting card",
                 _ => "my system"
             });
+
+            // Strip Gemma / chat control token artifacts
+            if (cleaned.Contains("<turn|>") || cleaned.Contains("<end_of_turn>") || cleaned.Contains("<start_of_turn>"))
+            {
+                cleaned = cleaned
+                    .Replace("<turn|>", string.Empty)
+                    .Replace("<end_of_turn>", string.Empty)
+                    .Replace("<start_of_turn>", string.Empty)
+                    .Trim();
+            }
+
+            return cleaned;
         }
         catch (RegexMatchTimeoutException)
         {
             return text;
         }
+
     }
 
     private static string? ExtractReasoningText(AIContent? content)

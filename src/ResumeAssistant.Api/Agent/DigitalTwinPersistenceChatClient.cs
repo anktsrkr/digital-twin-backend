@@ -46,7 +46,7 @@ public sealed class DigitalTwinPersistenceChatClient : DelegatingChatClient
             {
                 if (m.Contents is not null)
                 {
-                    foreach (var c in m.Contents)
+                    foreach (var c in m.Contents.Where(c => c is not TextContent))
                     {
                         assistantMsg.Contents.Add(c);
                     }
@@ -89,13 +89,14 @@ public sealed class DigitalTwinPersistenceChatClient : DelegatingChatClient
         }
 
         var assistantMessage = new ChatMessage(ChatRole.Assistant, fullResponse);
-        foreach (var content in responseContents)
+        foreach (var content in responseContents.Where(c => c is not TextContent))
         {
             assistantMessage.Contents.Add(content);
         }
 
         _ = PersistTurnAsync(messages, assistantMessage, options, CancellationToken.None);
     }
+
 
     private async Task PersistTurnAsync(
         IEnumerable<ChatMessage> messages,

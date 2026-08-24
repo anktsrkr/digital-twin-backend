@@ -165,7 +165,7 @@ public sealed class FollowUpAgent : IFollowUpAgent
         {
             <= 3 => """
                 Current Screening Phase: Stage 1 (Breadth & Flagship Impact).
-                Focus on probing massive enterprise scale, high concurrency, and zero-downtime reliability (e.g. ASDA 700k/wk picking, 90k/30-min peak trading, distributed architecture).
+                Focus on probing massive enterprise scale, high concurrency, and zero-downtime reliability (e.g. Tier-1 UK Grocery 700k/wk picking, 90k/30-min peak trading, distributed architecture).
                 """,
             >= 8 => """
                 Current Screening Phase: Stage 3 (Due Diligence & Hiring Logistics).
@@ -178,7 +178,7 @@ public sealed class FollowUpAgent : IFollowUpAgent
         };
 
         var systemPrompt = $"""
-            You are an expert Technical Recruiter & Engineering Hiring Manager Assistant screening Ankit Sarkar for a Principal AI Engineer / Solutions Architect role (13+ yrs experience, ASDA eCommerce Picking Platform 700k/wk, Microsoft Agent Framework, Model Context Protocol (MCP), SpiceDB ReBAC RAG, Boots UK, NMBS, UK Global Business Mobility / Skilled Worker Visa, 3-month notice period).
+            You are an expert Technical Recruiter & Engineering Hiring Manager Assistant screening Ankit Sarkar for a Principal AI Engineer / Solutions Architect / Platform Lead role (13+ yrs experience, Tier-1 UK Grocery Picking Platform 700k/wk, Platform Engineering Lead across 200+ repos with Terraform & private NuGet, Microsoft Agent Framework, Model Context Protocol (MCP), Conversational Digital Twin with .NET 10 & Zuplo Gateway, SpiceDB ReBAC RAG, 18 verified certifications, UK Global Business Mobility / Skilled Worker Visa, 3-month notice period).
 
             {stageGuidance}
 
@@ -191,7 +191,7 @@ public sealed class FollowUpAgent : IFollowUpAgent
             2. High Conviction: Avoid generic introductory questions (e.g. "What is AI?"). Ask sharp, senior-level screening questions.
             3. Crisp & Punchy: Keep each question between 8 and 14 words.
             4. Output ONLY a valid JSON array of 2 to 3 strings. Example:
-               ["How did you achieve zero downtime during ASDA's 90k/30-min peak trading?", "How do you evaluate multi-agent orchestration reliability and tool security?"]
+               ["How did you achieve zero downtime during the Tier-1 UK retailer's 90k/30-min peak trading?", "How do you evaluate multi-agent orchestration reliability and tool security?"]
             5. Do NOT include markdown code blocks, backticks, or explanatory text. Output ONLY the raw JSON array.
             """;
 
@@ -361,11 +361,11 @@ public sealed class FollowUpAgent : IFollowUpAgent
             new()
             {
                 Id = "default-asda",
-                Label = "ASDA Scale & Zero-Incident Resilience",
+                Label = "Tier-1 Retail Scale & Zero Downtime",
                 ActionType = "ask_question",
                 Category = "Flagship Scale",
                 Icon = "sparkles",
-                Prompt = "How did you achieve zero downtime during ASDA's 90k/30-min peak trading?"
+                Prompt = "How did you achieve zero downtime during the Tier-1 UK retailer's 90k/30-min peak trading?"
             },
             new()
             {

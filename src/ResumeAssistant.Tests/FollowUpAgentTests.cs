@@ -86,7 +86,7 @@ public class FollowUpAgentTests
     public async Task FollowUpAgent_AntiLooping_ExcludesAlreadyAskedQuestion()
     {
         var agent = CreateAgent();
-        var askedQuestion = "How did you achieve zero downtime during ASDA's 90k/30-min peak trading?";
+        var askedQuestion = "How did you achieve zero downtime during the Tier-1 UK retailer's 90k/30-min peak trading?";
         var messages = new List<FollowUpMessageItem>
         {
             new() { Role = "user", Content = askedQuestion },

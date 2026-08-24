@@ -21,7 +21,7 @@ public sealed partial class PromptInjectionGuardChatClient(IChatClient innerClie
         TimeSpan.FromMilliseconds(200));
 
     private const string SafeRefusalMessage =
-        "I am Ankit Sarkar's Digital Twin, focused on technical screening, architectural discussions, and interview availability. I maintain strict professional boundaries and do not process prompt overrides or system instruction extraction requests. Feel free to ask about my engineering experience (such as ASDA peak resilience or MCP architectures) or schedule an interview below!";
+        "I am Ankit Sarkar's Digital Twin, focused on technical screening, architectural discussions, and interview availability. I maintain strict professional boundaries and do not process prompt overrides or system instruction extraction requests. Feel free to ask about my engineering experience (such as high-scale retail peak resilience or MCP architectures) or schedule an interview below!";
 
     private static bool IsAdversarialInjection(string text)
     {

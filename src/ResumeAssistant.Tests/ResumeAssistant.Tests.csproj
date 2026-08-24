@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ResumeAssistant.Api\ResumeAssistant.Api.csproj" />
     <ProjectReference Include="..\ResumeAssistant.Core\ResumeAssistant.Core.csproj" />
+    <ProjectReference Include="..\ResumeAssistant.Ingestion\ResumeAssistant.Ingestion.csproj" />
   </ItemGroup>
 
 </Project>
